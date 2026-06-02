@@ -6867,7 +6867,9 @@ function Library:CreateWindow(WindowInfo)
             Button.Padding.PaddingLeft = UDim.new(0, 6)
             Button.Padding.PaddingRight = UDim.new(0, 6)
             Button.Padding.PaddingTop = UDim.new(0, 6)
-            Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeXY
+            Button.Icon.AnchorPoint = Vector2.new(0.5, 0.5)
+            Button.Icon.Position = UDim2.fromScale(0.5, 0.5)
+            Button.Icon.Size = UDim2.fromOffset(20, 20)
         end
     end
 
@@ -6967,14 +6969,15 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
                     ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromScale(1, 1),
-                    SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
+                    Size = UDim2.fromOffset(20, 20),
                     Parent = TabButton,
                 })
             end
@@ -7824,13 +7827,15 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
-                    Size = UDim2.fromScale(1, 1),
-                    SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
+                    ScaleType = Enum.ScaleType.Fit,
+                    Size = UDim2.fromOffset(20, 20),
                     Parent = TabButton,
                 })
             end
