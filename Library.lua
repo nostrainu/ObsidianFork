@@ -6801,6 +6801,7 @@ function Library:CreateWindow(WindowInfo)
 
     --// Window Table \\--
     local Window = {}
+    Window.TabSections = {}
 
     function Window:ChangeTitle(title)
         assert(typeof(title) == "string", "Expected string for title got: " .. typeof(title))
@@ -6898,6 +6899,12 @@ function Library:CreateWindow(WindowInfo)
                 Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeYY
             end
         end
+
+        for _, Section in Window.TabSections do
+            Section.Frame.Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30)
+            Section.Label.Visible = not IsCompact
+            Section.Divider.Visible = IsCompact
+        end
     end
 
     function Window:IsSidebarCompacted()
@@ -6954,6 +6961,42 @@ function Library:CreateWindow(WindowInfo)
         end
     end
 
+    function Window:AddTabSection(Name)
+        local SectionFrame = New("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30),
+            Parent = Tabs,
+        })
+
+        local TextLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(12, 0),
+            Size = UDim2.new(1, -24, 1, 0),
+            Text = Name:upper(),
+            TextSize = 12,
+            TextColor3 = "FontColor",
+            TextTransparency = 0.6,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Visible = not IsCompact,
+            Parent = SectionFrame,
+        })
+
+        local Divider = New("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundColor3 = "OutlineColor",
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.new(1, -24, 0, 1),
+            Visible = IsCompact,
+            Parent = SectionFrame,
+        })
+
+        table.insert(Window.TabSections, {
+            Frame = SectionFrame,
+            Label = TextLabel,
+            Divider = Divider,
+        })
+    end
+
     function Window:AddTab(...)
         local Name = nil
         local Icon = nil
@@ -6977,6 +7020,7 @@ function Library:CreateWindow(WindowInfo)
         local TabContainer
         local TabLeft
         local TabRight
+        local TabMiddle
 
         Icon = Library:GetCustomIcon(Icon)
         do
@@ -7009,13 +7053,15 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
+                    AnchorPoint = IsCompact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
+                    Position = IsCompact and UDim2.fromScale(0.5, 0.5) or UDim2.new(0, 0, 0, 0),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
                     ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromScale(1, 1),
+                    Size = IsCompact and UDim2.fromOffset(20, 20) or UDim2.fromScale(1, 1),
                     SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
                     Parent = TabButton,
                 })
@@ -7100,6 +7146,39 @@ function Library:CreateWindow(WindowInfo)
                     BackgroundTransparency = 1,
                     LayoutOrder = 1,
                     Parent = TabRight,
+                })
+            end
+
+            TabMiddle = New("ScrollingFrame", {
+                AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                BackgroundTransparency = 1,
+                CanvasSize = UDim2.fromScale(0, 0),
+                ScrollBarImageTransparency = 1,
+                ScrollBarThickness = 0,
+                Size = UDim2.new(1, 0, 1, 0),
+                Parent = TabContainer,
+            })
+            New("UIListLayout", {
+                Padding = UDim.new(0, 2),
+                Parent = TabMiddle,
+            })
+            New("UIPadding", {
+                PaddingBottom = UDim.new(0, 2),
+                PaddingLeft = UDim.new(0, 2),
+                PaddingRight = UDim.new(0, 2),
+                PaddingTop = UDim.new(0, 2),
+                Parent = TabMiddle,
+            })
+            do
+                New("Frame", {
+                    BackgroundTransparency = 1,
+                    LayoutOrder = -1,
+                    Parent = TabMiddle,
+                })
+                New("Frame", {
+                    BackgroundTransparency = 1,
+                    LayoutOrder = 1,
+                    Parent = TabMiddle,
                 })
             end
         end
@@ -7200,6 +7279,7 @@ function Library:CreateWindow(WindowInfo)
             Sides = {
                 TabLeft,
                 TabRight,
+                TabMiddle,
             },
             WarningBox = {
                 IsNormal = false,
@@ -7286,7 +7366,7 @@ function Library:CreateWindow(WindowInfo)
             local Offset = WarningBoxHolder.Visible and WarningBox.Size.Y.Offset + 8 or 0
             for _, Side in Tab.Sides do
                 Side.Position = UDim2.new(Side.Position.X.Scale, 0, 0, Offset)
-                Side.Size = UDim2.new(0.5, -3, 1, -Offset)
+                Side.Size = UDim2.new(Side.Size.X.Scale, Side.Size.X.Offset, 1, -Offset)
             end
         end
 
@@ -7320,7 +7400,7 @@ function Library:CreateWindow(WindowInfo)
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 0),
-                Parent = Info.Side == 1 and TabLeft or TabRight,
+                Parent = Info.Side == 1 and TabLeft or Info.Side == 2 and TabRight or TabMiddle,
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
@@ -7436,12 +7516,20 @@ function Library:CreateWindow(WindowInfo)
             return Tab:AddGroupbox({ Side = 2, Name = Name, IconName = IconName })
         end
 
+        function Tab:AddMiddleGroupbox(Name, IconName)
+            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName })
+        end
+
+        function Tab:AddCenterGroupbox(Name, IconName)
+            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName })
+        end
+
         function Tab:AddTabbox(Info)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 0),
-                Parent = Info.Side == 1 and TabLeft or TabRight,
+                Parent = Info.Side == 1 and TabLeft or Info.Side == 2 and TabRight or TabMiddle,
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
@@ -7720,6 +7808,14 @@ function Library:CreateWindow(WindowInfo)
             return Tab:AddTabbox({ Side = 2, Name = Name })
         end
 
+        function Tab:AddMiddleTabbox(Name)
+            return Tab:AddTabbox({ Side = 3, Name = Name })
+        end
+
+        function Tab:AddCenterTabbox(Name)
+            return Tab:AddTabbox({ Side = 3, Name = Name })
+        end
+
         function Tab:Hover(Hovering)
             if Library.ActiveTab == Tab then
                 return
@@ -7866,13 +7962,15 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
+                    AnchorPoint = IsCompact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
+                    Position = IsCompact and UDim2.fromScale(0.5, 0.5) or UDim2.new(0, 0, 0, 0),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
                     ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromScale(1, 1),
+                    Size = IsCompact and UDim2.fromOffset(20, 20) or UDim2.fromScale(1, 1),
                     SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
                     Parent = TabButton,
                 })
