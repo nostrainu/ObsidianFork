@@ -5242,10 +5242,12 @@ do
             Type = "Viewport",
         }
 
-        assert(
-            typeof(Viewport.Object) == "Instance" and (Viewport.Object:IsA("BasePart") or Viewport.Object:IsA("Model")),
-            "Instance must be a BasePart or Model."
-        )
+        if Viewport.Object ~= nil then
+            assert(
+                typeof(Viewport.Object) == "Instance" and (Viewport.Object:IsA("BasePart") or Viewport.Object:IsA("Model")),
+                "Instance must be a BasePart or Model."
+            )
+        end
 
         assert(
             typeof(Viewport.Camera) == "Instance" and Viewport.Camera:IsA("Camera"),
@@ -5418,9 +5420,11 @@ do
             end
         end))
 
-        Viewport.Object.Parent = ViewportFrame
-        if Viewport.AutoFocus then
-            FocusCamera()
+        if Viewport.Object then
+            Viewport.Object.Parent = ViewportFrame
+            if Viewport.AutoFocus then
+                FocusCamera()
+            end
         end
 
         function Viewport:SetObject(Object: Instance, Clone: boolean?)
