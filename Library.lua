@@ -7081,74 +7081,6 @@ function Library:CreateWindow(WindowInfo)
                 Parent = Container,
             })
 
-            TabLeft = New("ScrollingFrame", {
-                AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                BackgroundTransparency = 1,
-                CanvasSize = UDim2.fromScale(0, 0),
-                ScrollBarImageTransparency = 1,
-                ScrollBarThickness = 0,
-                Size = UDim2.new(0.5, -3, 1, 0),
-                Parent = TabContainer,
-            })
-            New("UIListLayout", {
-                Padding = UDim.new(0, 2),
-                Parent = TabLeft,
-            })
-            New("UIPadding", {
-                PaddingBottom = UDim.new(0, 2),
-                PaddingLeft = UDim.new(0, 2),
-                PaddingRight = UDim.new(0, 2),
-                PaddingTop = UDim.new(0, 2),
-                Parent = TabLeft,
-            })
-            do
-                New("Frame", {
-                    BackgroundTransparency = 1,
-                    LayoutOrder = -1,
-                    Parent = TabLeft,
-                })
-                New("Frame", {
-                    BackgroundTransparency = 1,
-                    LayoutOrder = 1,
-                    Parent = TabLeft,
-                })
-            end
-
-            TabRight = New("ScrollingFrame", {
-                AnchorPoint = Vector2.new(1, 0),
-                AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                BackgroundTransparency = 1,
-                CanvasSize = UDim2.fromScale(0, 0),
-                Position = UDim2.fromScale(1, 0),
-                ScrollBarImageTransparency = 1,
-                ScrollBarThickness = 0,
-                Size = UDim2.new(0.5, -3, 1, 0),
-                Parent = TabContainer,
-            })
-            New("UIListLayout", {
-                Padding = UDim.new(0, 2),
-                Parent = TabRight,
-            })
-            New("UIPadding", {
-                PaddingBottom = UDim.new(0, 2),
-                PaddingLeft = UDim.new(0, 2),
-                PaddingRight = UDim.new(0, 2),
-                PaddingTop = UDim.new(0, 2),
-                Parent = TabRight,
-            })
-            do
-                New("Frame", {
-                    BackgroundTransparency = 1,
-                    LayoutOrder = -1,
-                    Parent = TabRight,
-                })
-                New("Frame", {
-                    BackgroundTransparency = 1,
-                    LayoutOrder = 1,
-                    Parent = TabRight,
-                })
-            end
-
             TabMiddle = New("ScrollingFrame", {
                 AutomaticCanvasSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
@@ -7177,7 +7109,7 @@ function Library:CreateWindow(WindowInfo)
                 })
                 New("Frame", {
                     BackgroundTransparency = 1,
-                    LayoutOrder = 1,
+                    LayoutOrder = 100000,
                     Parent = TabMiddle,
                 })
             end
@@ -7186,7 +7118,7 @@ function Library:CreateWindow(WindowInfo)
         --// Warning Box \\--
         local WarningBoxHolder = New("Frame", {
             AutomaticSize = Enum.AutomaticSize.Y,
-            BackgroundTransparency = 1,
+            BackgroundTransparency = 1,a
             Position = UDim2.fromOffset(0, 7),
             Size = UDim2.fromScale(1, 0),
             Visible = false,
@@ -7277,10 +7209,10 @@ function Library:CreateWindow(WindowInfo)
             DependencyGroupboxes = {},
             Description = Description,
             Sides = {
-                TabLeft,
-                TabRight,
                 TabMiddle,
             },
+            LayoutOrderCount = 0,
+            CurrentRow = nil,
             WarningBox = {
                 IsNormal = false,
                 LockSize = false,
@@ -7289,6 +7221,81 @@ function Library:CreateWindow(WindowInfo)
                 Text = "",
             },
         }
+
+        function Tab:GetNextLayoutOrder()
+            Tab.LayoutOrderCount = Tab.LayoutOrderCount + 1
+            return Tab.LayoutOrderCount
+        end
+
+        function Tab:GetSideContainer(Side)
+            if Side == 3 then
+                Tab.CurrentRow = nil
+                return TabMiddle
+            else
+                if not Tab.CurrentRow then
+                    local RowFrame = New("Frame", {
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                        BackgroundTransparency = 1,
+                        LayoutOrder = Tab:GetNextLayoutOrder(),
+                        Size = UDim2.new(1, 0, 0, 0),
+                        Parent = TabMiddle,
+                    })
+                    
+                    local RowLayout = New("UIListLayout", {
+                        FillDirection = Enum.FillDirection.Horizontal,
+                        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                        SortOrder = Enum.SortOrder.LayoutOrder,
+                        Parent = RowFrame,
+                    })
+
+                    local LeftColumn = New("Frame", {
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0.5, -3, 0, 0),
+                        Parent = RowFrame,
+                    })
+                    New("UIListLayout", {
+                        Padding = UDim.new(0, 6),
+                        Parent = LeftColumn,
+                    })
+                    New("UIPadding", {
+                        PaddingBottom = UDim.new(0, 4),
+                        PaddingTop = UDim.new(0, 4),
+                        Parent = LeftColumn,
+                    })
+
+                    -- Spacer
+                    New("Frame", {
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0, 6, 0, 0),
+                        Parent = RowFrame,
+                    })
+
+                    local RightColumn = New("Frame", {
+                        AutomaticSize = Enum.AutomaticSize.Y,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(0.5, -3, 0, 0),
+                        Parent = RowFrame,
+                    })
+                    New("UIListLayout", {
+                        Padding = UDim.new(0, 6),
+                        Parent = RightColumn,
+                    })
+                    New("UIPadding", {
+                        PaddingBottom = UDim.new(0, 4),
+                        PaddingTop = UDim.new(0, 4),
+                        Parent = RightColumn,
+                    })
+
+                    Tab.CurrentRow = {
+                        Frame = RowFrame,
+                        [1] = LeftColumn,
+                        [2] = RightColumn,
+                    }
+                end
+                return Tab.CurrentRow[Side]
+            end
+        end
 
         function Tab:UpdateWarningBox(Info)
             if typeof(Info.IsNormal) == "boolean" then
@@ -7396,11 +7403,13 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:AddGroupbox(Info)
+            local ParentContainer = Tab:GetSideContainer(Info.Side)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
+                LayoutOrder = Info.Side == 3 and Tab:GetNextLayoutOrder() or 0,
                 Size = UDim2.fromScale(1, 0),
-                Parent = Info.Side == 1 and TabLeft or Info.Side == 2 and TabRight or TabMiddle,
+                Parent = ParentContainer,
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
@@ -7453,11 +7462,11 @@ function Library:CreateWindow(WindowInfo)
 
                 GroupboxLabel = New("TextLabel", {
                     BackgroundTransparency = 1,
-                    Position = UDim2.fromOffset(BoxIcon and 24 or 0, 0),
+                    Position = Info.Center and UDim2.fromOffset(0, 0) or UDim2.fromOffset(BoxIcon and 24 or 0, 0),
                     Size = UDim2.new(1, 0, 0, 34),
                     Text = Info.Name,
                     TextSize = 15,
-                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextXAlignment = Info.Center and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
                     Parent = GroupboxHolder,
                 })
                 New("UIPadding", {
@@ -7508,28 +7517,30 @@ function Library:CreateWindow(WindowInfo)
             return Groupbox
         end
 
-        function Tab:AddLeftGroupbox(Name, IconName)
-            return Tab:AddGroupbox({ Side = 1, Name = Name, IconName = IconName })
+        function Tab:AddLeftGroupbox(Name, IconName, Center)
+            return Tab:AddGroupbox({ Side = 1, Name = Name, IconName = IconName, Center = Center })
         end
 
-        function Tab:AddRightGroupbox(Name, IconName)
-            return Tab:AddGroupbox({ Side = 2, Name = Name, IconName = IconName })
+        function Tab:AddRightGroupbox(Name, IconName, Center)
+            return Tab:AddGroupbox({ Side = 2, Name = Name, IconName = IconName, Center = Center })
         end
 
-        function Tab:AddMiddleGroupbox(Name, IconName)
-            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName })
+        function Tab:AddMiddleGroupbox(Name, IconName, Center)
+            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName, Center = Center })
         end
 
-        function Tab:AddCenterGroupbox(Name, IconName)
-            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName })
+        function Tab:AddCenterGroupbox(Name, IconName, Center)
+            return Tab:AddGroupbox({ Side = 3, Name = Name, IconName = IconName, Center = Center })
         end
 
         function Tab:AddTabbox(Info)
+            local ParentContainer = Tab:GetSideContainer(Info.Side)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
+                LayoutOrder = Info.Side == 3 and Tab:GetNextLayoutOrder() or 0,
                 Size = UDim2.fromScale(1, 0),
-                Parent = Info.Side == 1 and TabLeft or Info.Side == 2 and TabRight or TabMiddle,
+                Parent = ParentContainer,
             })
             New("UIListLayout", {
                 Padding = UDim.new(0, 6),
