@@ -323,9 +323,10 @@ local Templates = {
         UnlockMouseWhileOpen = true,
 
         EnableSidebarResize = false,
-        EnableCompacting = false,
-        DisableCompactingSnap = true,
-        SidebarCompacted = true,
+        EnableCompacting = true,
+        DisableCompactingSnap = false,
+        SidebarCompacted = false,
+        SideBarText = false,
         MinContainerWidth = 256,
 
         --// Snapping \\--
@@ -6402,6 +6403,12 @@ function Library:CreateWindow(WindowInfo)
     if WindowInfo.Compact ~= nil then
         WindowInfo.SidebarCompacted = WindowInfo.Compact
     end
+    if WindowInfo.SideBarText == false then
+        WindowInfo.SidebarCompacted = true
+        WindowInfo.EnableSidebarResize = false
+        WindowInfo.EnableCompacting = false
+        WindowInfo.DisableCompactingSnap = true
+    end
     if WindowInfo.SidebarMinWidth ~= nil then
         WindowInfo.MinSidebarWidth = WindowInfo.SidebarMinWidth
     end
@@ -6434,9 +6441,9 @@ function Library:CreateWindow(WindowInfo)
     local BottomBackground
     local FooterLabel
 
-    local InitialLeftWidth = WindowInfo.SidebarCompactWidth
-    local IsCompact = true
-    local LastExpandedWidth = InitialLeftWidth
+    local IsCompact = WindowInfo.SidebarCompacted
+    local InitialLeftWidth = IsCompact and WindowInfo.SidebarCompactWidth or math.ceil(WindowInfo.Size.X.Offset * 0.3)
+    local LastExpandedWidth = IsCompact and math.ceil(WindowInfo.Size.X.Offset * 0.3) or InitialLeftWidth
 
     do
         Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu("Keybinds")
@@ -6848,11 +6855,18 @@ function Library:CreateWindow(WindowInfo)
     end
 
     local function ApplyCompact()
-        IsCompact = true
+        if WindowInfo.SideBarText == false then
+            IsCompact = true
+        else
+            IsCompact = Window:GetSidebarWidth() == WindowInfo.SidebarCompactWidth
+            if WindowInfo.DisableCompactingSnap then
+                IsCompact = Window:GetSidebarWidth() <= WindowInfo.CompactWidthActivation
+            end
+        end
 
-        WindowTitle.Visible = false
+        WindowTitle.Visible = not IsCompact
         if not WindowInfo.Icon then
-            WindowIcon.Visible = true
+            WindowIcon.Visible = IsCompact
         end
 
         for _, Button in Library.TabButtons do
@@ -6861,24 +6875,41 @@ function Library:CreateWindow(WindowInfo)
             end
 
             if Button.Label then
-                Button.Label.Visible = false
+                Button.Label.Visible = not IsCompact
             end
-            Button.Padding.PaddingBottom = UDim.new(0, 6)
-            Button.Padding.PaddingLeft = UDim.new(0, 6)
-            Button.Padding.PaddingRight = UDim.new(0, 6)
-            Button.Padding.PaddingTop = UDim.new(0, 6)
-            Button.Icon.AnchorPoint = Vector2.new(0.5, 0.5)
-            Button.Icon.Position = UDim2.fromScale(0.5, 0.5)
-            Button.Icon.Size = UDim2.fromOffset(20, 20)
+            
+            if IsCompact then
+                Button.Padding.PaddingBottom = UDim.new(0, 6)
+                Button.Padding.PaddingLeft = UDim.new(0, 6)
+                Button.Padding.PaddingRight = UDim.new(0, 6)
+                Button.Padding.PaddingTop = UDim.new(0, 6)
+                Button.Icon.AnchorPoint = Vector2.new(0.5, 0.5)
+                Button.Icon.Position = UDim2.fromScale(0.5, 0.5)
+                Button.Icon.Size = UDim2.fromOffset(20, 20)
+                Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeXY
+            else
+                Button.Padding.PaddingBottom = UDim.new(0, 11)
+                Button.Padding.PaddingLeft = UDim.new(0, 12)
+                Button.Padding.PaddingRight = UDim.new(0, 12)
+                Button.Padding.PaddingTop = UDim.new(0, 11)
+                Button.Icon.AnchorPoint = Vector2.new(0, 0)
+                Button.Icon.Position = UDim2.new(0, 0, 0, 0)
+                Button.Icon.Size = UDim2.fromScale(1, 1)
+                Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeYY
+            end
         end
     end
 
     function Window:IsSidebarCompacted()
-        return true
+        return IsCompact
     end
 
     function Window:SetCompact(State)
-        Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
+        if WindowInfo.SideBarText == false then
+            Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
+        else
+            Window:SetSidebarWidth(State and WindowInfo.SidebarCompactWidth or LastExpandedWidth)
+        end
     end
 
     function Window:GetSidebarWidth()
@@ -6886,7 +6917,11 @@ function Library:CreateWindow(WindowInfo)
     end
 
     function Window:SetSidebarWidth(Width)
-        Width = WindowInfo.SidebarCompactWidth
+        if WindowInfo.SideBarText == false then
+            Width = WindowInfo.SidebarCompactWidth
+        else
+            Width = math.clamp(Width, 48, MainFrame.Size.X.Offset - WindowInfo.MinContainerWidth - 1)
+        end
 
         DividerLine.Position = UDim2.fromOffset(Width, 0)
 
@@ -6895,7 +6930,12 @@ function Library:CreateWindow(WindowInfo)
         Tabs.Size = UDim2.new(0, Width, 1, -70)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
 
-        ApplyCompact()
+        if WindowInfo.EnableCompacting or WindowInfo.SideBarText == false then
+            ApplyCompact()
+        end
+        if not IsCompact then
+            LastExpandedWidth = Width
+        end
     end
 
     function Window:ShowTabInfo(Name, Description)
@@ -6969,15 +7009,14 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
                     ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromOffset(20, 20),
+                    Size = UDim2.fromScale(1, 1),
+                    SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
                     Parent = TabButton,
                 })
             end
@@ -7827,15 +7866,14 @@ function Library:CreateWindow(WindowInfo)
 
             if Icon then
                 TabIcon = New("ImageLabel", {
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
                     Image = Icon.Url,
                     ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                     ImageRectOffset = Icon.ImageRectOffset,
                     ImageRectSize = Icon.ImageRectSize,
                     ImageTransparency = 0.5,
                     ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromOffset(20, 20),
+                    Size = UDim2.fromScale(1, 1),
+                    SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
                     Parent = TabButton,
                 })
             end
@@ -8635,7 +8673,11 @@ function Library:CreateWindow(WindowInfo)
             end
         end))
     end
-    Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
+    if WindowInfo.SideBarText == false or (WindowInfo.EnableCompacting and WindowInfo.SidebarCompacted) then
+        Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
+    else
+        Window:SetSidebarWidth(InitialLeftWidth)
+    end
     if WindowInfo.AutoShow and not Library.ActiveLoading then
         task.spawn(Library.Toggle)
     end
