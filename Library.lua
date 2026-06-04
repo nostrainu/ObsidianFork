@@ -1274,7 +1274,6 @@ do
 end
 
 --// Lib Functions \\--
-
 function Library:GetBetterColor(Color: Color3, Add: number): Color3
     Add = Add * (Library.IsLightTheme and -4 or 2)
     return Color3.fromRGB(
@@ -1330,7 +1329,6 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
             ActiveTween = nil
         end
         
-        -- Reset label position and properties
         TweenService:Create(Label, Library.TweenInfo, {
             Position = UDim2.new(0, 0, 0, 0)
         }):Play()
@@ -1341,7 +1339,6 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
             Label.TextXAlignment = Label:GetAttribute("OriginalAlignment")
         end
         
-        -- Reset container position and size
         if Container:GetAttribute("Center") then
             Container.Position = UDim2.fromOffset(0, 0)
             Container.Size = UDim2.new(1, 0, 0, 34)
@@ -1350,7 +1347,6 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
             Container.Size = UDim2.new(1, -LeftOffset, 0, 34)
         end
 
-        -- Restore static UIPadding
         local UIPadding = Container:FindFirstChildOfClass("UIPadding")
         if UIPadding then
             local SidePadding = 12
@@ -1374,15 +1370,13 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
             return 
         end
         
-        -- Store original alignment if not already stored
         if not Label:GetAttribute("OriginalAlignment") then
             Label:SetAttribute("OriginalAlignment", Label.TextXAlignment)
         end
         
-        local cleanText = Label.Text:gsub("<[^>]+>", "") -- strip rich text tags
+        local cleanText = Label.Text:gsub("<[^>]+>", "")
         local TextWidth = TextService:GetTextSize(cleanText, Label.TextSize, Label.Font, Vector2.new(10000, 10000)).X
         
-        -- Check if text exceeds static usable bounds first
         local StaticContainerWidth = Container.AbsoluteSize.X
         local StaticUsableWidth = StaticContainerWidth
         local UIPadding = Container:FindFirstChildOfClass("UIPadding")
@@ -1393,7 +1387,6 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
         end
         
         if TextWidth > StaticUsableWidth then
-            -- Active scrolling: shift/shrink container and adjust padding
             local LeftOffset = Container:GetAttribute("LeftOffset") or Container.Position.X.Offset
             local Collapsible = Container:GetAttribute("Collapsible")
             local IsCentered = Container:GetAttribute("Center") or Container:GetAttribute("CenterCollapsible")
@@ -1411,42 +1404,39 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
                 UIPadding.PaddingRight = UDim.new(0, 12)
             end
             
-            -- Recalculate UsableWidth based on new scrolling bounds
             local ScrollingContainerWidth = Container.Parent.AbsoluteSize.X - LeftOffset - (Collapsible and 28 or 0)
             if not IsCentered and not Container:GetAttribute("CenterCollapsible") then
                 ScrollingContainerWidth = Container.AbsoluteSize.X
             end
-            local UsableWidth = ScrollingContainerWidth - 24 -- 12px padding left + 12px padding right
+            local UsableWidth = ScrollingContainerWidth - 24 
             
             Label.TextTruncate = Enum.TextTruncate.None
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Size = UDim2.new(0, TextWidth, 1, 0)
             
             local ScrollDistance = UsableWidth - TextWidth - 4
-            local Speed = 30 -- pixels per second
+            local Speed = 30 
             local Duration = math.abs(ScrollDistance) / Speed
             
             local function RunTweenLoop()
                 if not IsHovered or not Library.ScrollLongText then return end
                 
-                -- Tween to end
                 ActiveTween = TweenService:Create(Label, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {
                     Position = UDim2.new(0, ScrollDistance, 0, 0)
                 })
                 ActiveTween:Play()
                 
                 TweenConnection = ActiveTween.Completed:Connect(function()
-                    task.wait(1.5) -- pause at end
+                    task.wait(1.5)
                     if not IsHovered or not Library.ScrollLongText then return end
                     
-                    -- Tween back to start
                     ActiveTween = TweenService:Create(Label, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {
                         Position = UDim2.new(0, 0, 0, 0)
                     })
                     ActiveTween:Play()
                     
                     TweenConnection = ActiveTween.Completed:Connect(function()
-                        task.wait(1.5) -- pause at start
+                        task.wait(1.5) 
                         RunTweenLoop()
                     end)
                 end)
@@ -1460,7 +1450,7 @@ function Library:SetUpMarquee(Label: TextLabel, HoverFrame: GuiObject, Container
     
     HoverFrame.MouseEnter:Connect(function()
         IsHovered = true
-        task.wait(0.5) -- delay before starting scroll
+        task.wait(0.5) 
         if IsHovered then
             StartScroll()
         end
@@ -2261,7 +2251,6 @@ function Library:SetIconModule(module: IconModule)
     FetchIcons = true
     Icons = module
 
-    -- Top ten fixes 🚀
     CheckIcon = Library:GetIcon("check")
     ArrowIcon = Library:GetIcon("chevron-up")
     ResizeIcon = Library:GetIcon("move-diagonal-2")
