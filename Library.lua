@@ -86,6 +86,14 @@ local CustomImageManagerAssets = {
 
         Id = nil,
     },
+
+    PopCatDonut = {
+        RobloxId = 0,
+        Path = "pop_cat_donut.png",
+        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_donut.png",
+
+        Id = nil,
+    },
 }
 do
     local function RecursiveCreatePath(Path: string, IsFile: boolean?)
@@ -185,6 +193,20 @@ do
     for AssetName, _ in CustomImageManagerAssets do
         CustomImageManager.DownloadAsset(AssetName)
     end
+
+    task.spawn(function()
+        local ContentProvider = game:GetService("ContentProvider")
+        local assetsToPreload = {}
+        for name, _ in pairs(CustomImageManagerAssets) do
+            local id = CustomImageManager.GetAsset(name)
+            if id then
+                table.insert(assetsToPreload, id)
+            end
+        end
+        pcall(function()
+            ContentProvider:PreloadAsync(assetsToPreload)
+        end)
+    end)
 end
 
 local Library = {
@@ -399,6 +421,9 @@ local Templates = {
 
         ContentWidth = 450,
         SidebarWidth = 250,
+
+        PopCat = false,
+        AutoInitialize = true,
     },
     Toggle = {
         Text = "Toggle",
@@ -1158,7 +1183,13 @@ function Library:GetCustomIcon(IconName: string): any
         return LucideIcon
     end
 
-    return nil
+    -- Fallback to prevent index nil crashes on invalid icons
+    return {
+        Url = "rbxassetid://0",
+        ImageRectOffset = Vector2.zero,
+        ImageRectSize = Vector2.zero,
+        Custom = true,
+    }
 end
 
 function Library:Validate(Table: { [string]: any }, Template: { [string]: any }): { [string]: any }
@@ -6810,24 +6841,7 @@ function Library:CreateWindow(WindowInfo)
                 Rotation = 0,
                 Parent = TopBar
             })
-            -- Bottom Left Corner Cover
-            New("Frame", {
-                BackgroundColor3 = "BackgroundColor",
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 1, -WindowInfo.CornerRadius),
-                Size = UDim2.fromOffset(WindowInfo.CornerRadius, WindowInfo.CornerRadius),
-                ZIndex = 1,
-                Parent = TopBar
-            })
-            -- Bottom Right Corner Cover
-            New("Frame", {
-                BackgroundColor3 = "BackgroundColor",
-                BorderSizePixel = 0,
-                Position = UDim2.new(1, -WindowInfo.CornerRadius, 1, -WindowInfo.CornerRadius),
-                Size = UDim2.fromOffset(WindowInfo.CornerRadius, WindowInfo.CornerRadius),
-                ZIndex = 1,
-                Parent = TopBar
-            })
+
         end
         Library:MakeDraggable(MainFrame, TopBar, false, true)
 
@@ -10683,6 +10697,13 @@ function Library:CreateLoading(LoadingInfo)
         SidebarWidth = LoadingInfo.SidebarWidth,
     }
 
+    if LoadingInfo.PopCat then
+        Loading.WindowWidth = 300
+        Loading.WindowHeight = 100
+        Loading.ContentWidth = 300
+        Loading.ShowSidebar = false
+    end
+
     --// ScreenGui \\--
     local ScreenGui = New("ScreenGui", {
         Name = "ObsidianLoading",
@@ -10757,7 +10778,7 @@ function Library:CreateLoading(LoadingInfo)
     local TopBar = New("Frame", {
         Name = "TopBar",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 48),
+        Size = UDim2.new(1, 0, 0, LoadingInfo.PopCat and 38 or 48),
         ZIndex = 2,
         Parent = Container,
     })
@@ -10768,157 +10789,299 @@ function Library:CreateLoading(LoadingInfo)
         Size = UDim2.new(1, 0, 1, 0),
         Parent = TopBar,
     })
-    New("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        Parent = TitleHolder,
-    })
-    New("UIPadding", {
-        PaddingLeft = UDim.new(0, 12),
-        Parent = TitleHolder,
-    })
 
-    if LoadingInfo.Icon then
-        local Icon = Library:GetCustomIcon(LoadingInfo.Icon)
-        local _WindowIcon = New("ImageLabel", {
-            Image = Icon.Url,
-            ImageRectOffset = Icon.ImageRectOffset,
-            ImageRectSize = Icon.ImageRectSize,
-            Size = LoadingInfo.IconSize,
+    if LoadingInfo.PopCat then
+        local _WindowTitle = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = LoadingInfo.Title,
+            TextSize = 20,
+            TextXAlignment = Enum.TextXAlignment.Center,
             Parent = TitleHolder,
         })
     else
-        local _WindowIcon = New("TextLabel", {
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            Parent = TitleHolder,
+        })
+        New("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            Parent = TitleHolder,
+        })
+
+        if LoadingInfo.Icon then
+            local Icon = Library:GetCustomIcon(LoadingInfo.Icon)
+            local _WindowIcon = New("ImageLabel", {
+                Image = Icon.Url,
+                ImageRectOffset = Icon.ImageRectOffset,
+                ImageRectSize = Icon.ImageRectSize,
+                Size = LoadingInfo.IconSize,
+                Parent = TitleHolder,
+            })
+        else
+            local _WindowIcon = New("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = LoadingInfo.IconSize,
+                Text = LoadingInfo.Title:sub(1, 1),
+                TextScaled = true,
+                Visible = false,
+                Parent = TitleHolder,
+            })
+        end
+
+        local TitleX = Library:GetTextBounds(
+            LoadingInfo.Title,
+            Library.Scheme.Font,
+            20,
+            TitleHolder.AbsoluteSize.X - (LoadingInfo.Icon and (LoadingInfo.IconSize.X.Offset + 6) or 0) - 12
+        )
+        local _WindowTitle = New("TextLabel", {
             BackgroundTransparency = 1,
-            Size = LoadingInfo.IconSize,
-            Text = LoadingInfo.Title:sub(1, 1),
-            TextScaled = true,
-            Visible = false,
+            Size = UDim2.new(0, TitleX, 1, 0),
+            Text = LoadingInfo.Title,
+            TextSize = 20,
             Parent = TitleHolder,
         })
     end
 
-    local TitleX = Library:GetTextBounds(
-        LoadingInfo.Title,
-        Library.Scheme.Font,
-        20,
-        TitleHolder.AbsoluteSize.X - (LoadingInfo.Icon and (LoadingInfo.IconSize.X.Offset + 6) or 0) - 12
-    )
-    local _WindowTitle = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, TitleX, 1, 0),
-        Text = LoadingInfo.Title,
-        TextSize = 20,
-        Parent = TitleHolder,
-    })
-
-    Library:MakeLine(Container, {
+    local TitleLine = Library:MakeLine(Container, {
         Position = UDim2.fromOffset(0, 48),
         Size = UDim2.new(1, 0, 0, 1),
     })
+    TitleLine.Visible = not LoadingInfo.PopCat
 
     --// Loading Content Elements \\--
+    local LoadingIcon
+    local DonutIcon
+    local MessageLabel
+    local DescriptionLabel
+    local SliderBar
+    local SliderFill
+    local ProgressLabel
+    local RotationTween
+
     local InnerContent = New("Frame", {
         Name = "InnerContent",
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(0, 49),
-        Size = UDim2.new(1, 0, 1, -49),
+        Position = UDim2.fromOffset(0, LoadingInfo.PopCat and 39 or 49),
+        Size = UDim2.new(1, 0, 1, LoadingInfo.PopCat and -39 or -49),
         Parent = Container,
     })
 
-    New("UIListLayout", {
-        FillDirection = Enum.FillDirection.Vertical,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 12),
-        Parent = InnerContent,
-    })
+    if LoadingInfo.PopCat then
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Vertical,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
+            Parent = InnerContent,
+        })
+        New("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            PaddingTop = UDim.new(0, 8),
+            PaddingBottom = UDim.new(0, 16),
+            Parent = InnerContent,
+        })
 
-    local IconHolder = New("Frame", {
-        Name = "IconHolder",
-        BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(64, 64),
-        Parent = InnerContent,
-    })
+        local StatusHolder = New("Frame", {
+            Name = "StatusHolder",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 18),
+            Parent = InnerContent,
+        })
+        MessageLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0, 0),
+            Size = UDim2.new(0.8, 0, 1, 0),
+            Text = "",
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = StatusHolder,
+        })
+        ProgressLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.8, 0),
+            Size = UDim2.new(0.2, 0, 1, 0),
+            Text = "",
+            TextSize = 14,
+            TextTransparency = 0.5,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = StatusHolder,
+        })
 
-    local LoaderIcon = Library:GetCustomIcon(LoadingInfo.LoadingIcon)
-    local LoadingIcon = New("ImageLabel", {
-        Name = "LoaderIcon",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromScale(1, 1),
-        Image = LoaderIcon.Url,
-        ImageRectOffset = LoaderIcon.ImageRectOffset,
-        ImageRectSize = LoaderIcon.ImageRectSize,
-        ImageColor3 = LoadingInfo.LoadingIconColor or ((LoadingInfo.LoadingIcon == Templates.Loading.LoadingIcon) and "AccentColor" or "WhiteColor"),
-        Parent = IconHolder,
-    })
+        DescriptionLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 14),
+            Text = "",
+            TextSize = 12,
+            TextTransparency = 0.5,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Visible = false,
+            Parent = InnerContent,
+        })
 
-    local RotationTween
-    if LoadingInfo.LoadingIconTweenTime > 0 then
-        RotationTween = TweenService:Create(
-            LoadingIcon,
-            TweenInfo.new(LoadingInfo.LoadingIconTweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1),
-            { Rotation = 360 }
-        )
-        RotationTween:Play()
+        SliderBar = New("Frame", {
+            BackgroundColor3 = "MainColor",
+            Size = UDim2.new(1, 0, 0, 6),
+            Parent = InnerContent,
+        })
+        Library:AddOutline(SliderBar)
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 3), Parent = SliderBar }))
+
+        SliderFill = New("Frame", {
+            BackgroundColor3 = "AccentColor",
+            BorderSizePixel = 0,
+            Size = UDim2.fromScale(0, 1),
+            Parent = SliderBar,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 3), Parent = SliderFill }))
+
+        DonutIcon = New("ImageLabel", {
+            Name = "DonutIcon",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, 0, 0.5, 0),
+            Size = UDim2.fromOffset(24, 24),
+            Image = CustomImageManager.GetAsset("PopCatDonut"),
+            ZIndex = 2,
+            Parent = SliderBar,
+        })
+
+        task.spawn(function()
+            while not Loading.Destroyed do
+                if DonutIcon.Visible then
+                    local tweenUp = TweenService:Create(DonutIcon, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Size = UDim2.fromOffset(28, 28) })
+                    tweenUp:Play()
+                    tweenUp.Completed:Wait()
+                    if Loading.Destroyed then break end
+                    local tweenDown = TweenService:Create(DonutIcon, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Size = UDim2.fromOffset(24, 24) })
+                    tweenDown:Play()
+                    tweenDown.Completed:Wait()
+                else
+                    task.wait(0.2)
+                end
+            end
+        end)
+
+        LoadingIcon = New("ImageLabel", {
+            Name = "PopCatLoader",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0.5, 0),
+            Size = UDim2.fromOffset(32, 32),
+            Image = CustomImageManager.GetAsset("PopCatIdleClosed"),
+            ImageRectOffset = Vector2.new(418, 0),
+            ImageRectSize = Vector2.new(-418, 418),
+            ZIndex = 3,
+            Parent = SliderBar,
+        })
+
+        -- Start PopCat mouth-popping loop
+        task.spawn(function()
+            local isOpen = false
+            while not Loading.Destroyed do
+                isOpen = not isOpen
+                LoadingIcon.Image = CustomImageManager.GetAsset(isOpen and "PopCatOpen" or "PopCatIdleClosed")
+                task.wait(0.15)
+            end
+        end)
+    else
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Vertical,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 12),
+            Parent = InnerContent,
+        })
+
+        local IconHolder = New("Frame", {
+            Name = "IconHolder",
+            BackgroundTransparency = 1,
+            Size = UDim2.fromOffset(64, 64),
+            Parent = InnerContent,
+        })
+
+        local LoaderIcon = Library:GetCustomIcon(LoadingInfo.LoadingIcon)
+        LoadingIcon = New("ImageLabel", {
+            Name = "LoaderIcon",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            BackgroundTransparency = 1,
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromScale(1, 1),
+            Image = LoaderIcon.Url,
+            ImageRectOffset = LoaderIcon.ImageRectOffset,
+            ImageRectSize = LoaderIcon.ImageRectSize,
+            ImageColor3 = LoadingInfo.LoadingIconColor or ((LoadingInfo.LoadingIcon == Templates.Loading.LoadingIcon) and "AccentColor" or "WhiteColor"),
+            Parent = IconHolder,
+        })
+
+        if LoadingInfo.LoadingIconTweenTime > 0 then
+            RotationTween = TweenService:Create(
+                LoadingIcon,
+                TweenInfo.new(LoadingInfo.LoadingIconTweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, -1),
+                { Rotation = 360 }
+            )
+            RotationTween:Play()
+        end
+
+        MessageLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            AutomaticSize = Loading.AutoResizeHeight and Enum.AutomaticSize.Y or Enum.AutomaticSize.XY,
+            Size = Loading.AutoResizeHeight and UDim2.new(1, -60, 0, 0) or UDim2.fromOffset(0, 0),
+            Text = "",
+            TextSize = 18,
+            TextWrapped = Loading.AutoResizeHeight,
+            Parent = InnerContent,
+        })
+
+        DescriptionLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            AutomaticSize = Loading.AutoResizeHeight and Enum.AutomaticSize.Y or Enum.AutomaticSize.XY,
+            Size = Loading.AutoResizeHeight and UDim2.new(1, -60, 0, 0) or UDim2.fromOffset(0, 0),
+            Text = "",
+            TextSize = 14,
+            TextTransparency = 0.5,
+            TextWrapped = Loading.AutoResizeHeight,
+            Visible = false,
+            Parent = InnerContent,
+        })
+
+        --// Progress Bar \\--
+        SliderBar = New("Frame", {
+            BackgroundColor3 = "MainColor",
+            Size = UDim2.new(0.7, 0, 0, 15),
+            Parent = InnerContent,
+        })
+        Library:AddOutline(SliderBar)
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius / 2), Parent = SliderBar }))
+
+        SliderFill = New("Frame", {
+            BackgroundColor3 = "AccentColor",
+            BorderSizePixel = 0,
+            Size = UDim2.fromScale(0, 1),
+            Parent = SliderBar,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius / 2), Parent = SliderFill }))
+
+        ProgressLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Text = "",
+            TextSize = 14,
+            ZIndex = 2,
+            Parent = SliderBar,
+        })
+        New("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+            Color = "DarkColor",
+            LineJoinMode = Enum.LineJoinMode.Miter,
+            Parent = ProgressLabel,
+        })
     end
-
-    local MessageLabel = New("TextLabel", {
-        BackgroundTransparency = 1,
-        AutomaticSize = Loading.AutoResizeHeight and Enum.AutomaticSize.Y or Enum.AutomaticSize.XY,
-        Size = Loading.AutoResizeHeight and UDim2.new(1, -60, 0, 0) or UDim2.fromOffset(0, 0),
-        Text = "",
-        TextSize = 18,
-        TextWrapped = Loading.AutoResizeHeight,
-        Parent = InnerContent,
-    })
-
-    local DescriptionLabel = New("TextLabel", {
-        BackgroundTransparency = 1,
-        AutomaticSize = Loading.AutoResizeHeight and Enum.AutomaticSize.Y or Enum.AutomaticSize.XY,
-        Size = Loading.AutoResizeHeight and UDim2.new(1, -60, 0, 0) or UDim2.fromOffset(0, 0),
-        Text = "",
-        TextSize = 14,
-        TextTransparency = 0.5,
-        TextWrapped = Loading.AutoResizeHeight,
-        Parent = InnerContent,
-    })
-
-    --// Progress Bar \\--
-    local SliderBar = New("Frame", {
-        BackgroundColor3 = "MainColor",
-        Size = UDim2.new(0.7, 0, 0, 15),
-        Parent = InnerContent,
-    })
-    Library:AddOutline(SliderBar)
-    table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius / 2), Parent = SliderBar }))
-
-    local SliderFill = New("Frame", {
-        BackgroundColor3 = "AccentColor",
-        BorderSizePixel = 0,
-        Size = UDim2.fromScale(0, 1),
-        Parent = SliderBar,
-    })
-    table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius / 2), Parent = SliderFill }))
-
-    local ProgressLabel = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.fromScale(1, 1),
-        Text = "",
-        TextSize = 14,
-        ZIndex = 2,
-        Parent = SliderBar,
-    })
-    New("UIStroke", {
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-        Color = "DarkColor",
-        LineJoinMode = Enum.LineJoinMode.Miter,
-        Parent = ProgressLabel,
-    })
 
     --// Sidebar Object \\--
     local SidebarScrolling = New("ScrollingFrame", {
@@ -11091,6 +11254,7 @@ function Library:CreateLoading(LoadingInfo)
 
     function Loading:SetDescription(Text)
         DescriptionLabel.Text = Text
+        DescriptionLabel.Visible = (Text ~= "" and Text ~= nil)
 
         if Loading.AutoResizeHeight then
             Loading:RecalculateLoadingHeight()
@@ -11132,6 +11296,54 @@ function Library:CreateLoading(LoadingInfo)
 
         local Progress = Loading.CurrentStep / Loading.TotalSteps
         TweenService:Create(SliderFill, Library.TweenInfo, { Size = UDim2.fromScale(Progress, 1) }):Play()
+
+        if LoadingInfo.PopCat and LoadingIcon then
+            TweenService:Create(LoadingIcon, Library.TweenInfo, { Position = UDim2.new(Progress, 0, 0.5, 0) }):Play()
+            if DonutIcon then
+                if Progress >= 1 then
+                    TweenService:Create(DonutIcon, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(0, 0) }):Play()
+                    task.delay(0.08, function()
+                        if not Loading.Destroyed then
+                            DonutIcon.Visible = false
+                        end
+                    end)
+
+                    task.spawn(function()
+                        task.wait(0.05)
+                        if Loading.Destroyed then return end
+
+                        for j = 1, 5 do
+                            local crumb = New("Frame", {
+                                BackgroundColor3 = Color3.fromRGB(120, 68, 33),
+                                BorderSizePixel = 0,
+                                AnchorPoint = Vector2.new(0.5, 0.5),
+                                Position = UDim2.new(1, 0, 0.5, 0),
+                                Size = UDim2.fromOffset(math.random(2, 4), math.random(2, 4)),
+                                ZIndex = 4,
+                                Parent = SliderBar,
+                            })
+
+                            local angle = math.rad(math.random(-60, 60))
+                            local force = math.random(15, 30)
+                            local targetX = math.cos(angle) * force
+                            local targetY = math.sin(angle) * force
+
+                            TweenService:Create(crumb, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                                Position = UDim2.new(1, targetX, 0.5, targetY),
+                                Size = UDim2.fromOffset(0, 0),
+                                BackgroundTransparency = 1,
+                            }):Play()
+
+                            task.delay(0.4, function()
+                                crumb:Destroy()
+                            end)
+                        end
+                    end)
+                else
+                    DonutIcon.Visible = true
+                end
+            end
+        end
 
         ProgressLabel.Text = string.format("%d/%d", Loading.CurrentStep, Loading.TotalSteps)
     end
@@ -11333,6 +11545,18 @@ function Library:CreateLoading(LoadingInfo)
 
     Loading:SetCurrentStep(Loading.CurrentStep)
 
+    if LoadingInfo.AutoInitialize then
+        Loading:SetMessage("Preloading UI assets...")
+        task.wait(0.2)
+        Loading:SetCurrentStep(1)
+
+        Loading:SetMessage("Initializing theme settings...")
+        task.wait(0.3)
+        Loading:SetCurrentStep(2)
+
+        Loading:SetMessage("Assembling User Interface...")
+    end
+
     Library.ActiveLoading = Loading
     return Loading
 end
@@ -11369,6 +11593,6 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange))
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange))
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
 
-print("wisu")
+print("yey")
 getgenv().Library = Library
 return Library
