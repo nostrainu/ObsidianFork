@@ -551,6 +551,9 @@ local Templates = {
         Callback = function() end,
         Changed = function() end,
     },
+    MacroStatus = {
+        Visible = true,
+    },
 }
 
 local Places = {
@@ -4223,6 +4226,189 @@ do
         end
 
         return Card
+    end
+
+    function Funcs:AddMacroStatus(Idx, Info)
+        Info = Library:Validate(Info, Templates.MacroStatus)
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local MacroStatus = {
+            Visible = Info.Visible,
+            Type = "MacroStatus",
+        }
+
+        local Holder = New("Frame", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 0.5,
+            ClipsDescendants = true,
+            Size = UDim2.new(1, 0, 0, 32),
+            Visible = MacroStatus.Visible,
+            Parent = Container,
+        })
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Holder }))
+        Library:AddOutline(Holder)
+
+        -- Top Status Row
+        local StatusIcon = New("ImageLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(8, 8),
+            Size = UDim2.fromOffset(16, 16),
+            ImageColor3 = "AccentColor",
+            Parent = Holder,
+        })
+
+        local StatusLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(30, 8),
+            Size = UDim2.new(1, -38, 0, 16),
+            Text = "Status: Idle",
+            TextSize = 13,
+            Font = Enum.Font.Code,
+            TextColor3 = "FontColor",
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = Holder,
+        })
+
+        -- Current Action Row (indented and dimmed)
+        local CurrentIcon = New("ImageLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(16, 28),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.3,
+            Parent = Holder,
+        })
+
+        local CurrentLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(36, 28),
+            Size = UDim2.new(1, -44, 0, 14),
+            Text = "Current: None",
+            TextSize = 12,
+            Font = Enum.Font.Code,
+            TextColor3 = "FontColor",
+            TextTransparency = 0.3,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = Holder,
+        })
+
+        -- Next Action Row (further indents / lighter transparency)
+        local NextIcon = New("ImageLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(16, 46),
+            Size = UDim2.fromOffset(14, 14),
+            ImageColor3 = "FontColor",
+            ImageTransparency = 0.55,
+            Parent = Holder,
+        })
+
+        local NextLabel = New("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(36, 46),
+            Size = UDim2.new(1, -44, 0, 14),
+            Text = "Next: None",
+            TextSize = 12,
+            Font = Enum.Font.Code,
+            TextColor3 = "FontColor",
+            TextTransparency = 0.55,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = Holder,
+        })
+
+        local function ApplyIcon(imageLabel, iconName)
+            if iconName then
+                local iconData = Library:GetCustomIcon(iconName)
+                if iconData then
+                    imageLabel.Image = iconData.Url
+                    imageLabel.ImageRectOffset = iconData.ImageRectOffset
+                    imageLabel.ImageRectSize = iconData.ImageRectSize
+                    imageLabel.Visible = true
+                else
+                    imageLabel.Visible = false
+                end
+            else
+                imageLabel.Visible = false
+            end
+        end
+
+        -- Initialize default icons
+        ApplyIcon(StatusIcon, "play")
+        ApplyIcon(CurrentIcon, "target")
+        ApplyIcon(NextIcon, "skip-forward")
+
+        function MacroStatus:Update(stateInfo)
+            stateInfo = stateInfo or {}
+
+            local targetHeight = 32
+
+            if stateInfo.State then
+                StatusLabel.Text = "Status: " .. stateInfo.State
+                local stateLower = stateInfo.State:lower()
+                if stateLower:find("playing") then
+                    ApplyIcon(StatusIcon, "play")
+                    StatusIcon.ImageColor3 = Library.Scheme.AccentColor
+                    targetHeight = 72
+                elseif stateLower:find("recording") then
+                    ApplyIcon(StatusIcon, "circle")
+                    StatusIcon.ImageColor3 = Library.Scheme.RedColor or Color3.fromRGB(255, 50, 50)
+                    targetHeight = 52
+                elseif stateLower:find("done") or stateLower:find("stopped") or stateLower:find("idle") then
+                    ApplyIcon(StatusIcon, "square")
+                    StatusIcon.ImageColor3 = Library.Scheme.FontColor
+                    targetHeight = 32
+                else
+                    ApplyIcon(StatusIcon, "play")
+                    StatusIcon.ImageColor3 = Library.Scheme.AccentColor
+                    targetHeight = 32
+                end
+            end
+
+            if stateInfo.Current then
+                CurrentLabel.Text = "Current: " .. stateInfo.Current
+                CurrentLabel.Visible = true
+                CurrentIcon.Visible = true
+            else
+                CurrentLabel.Visible = false
+                CurrentIcon.Visible = false
+            end
+
+            if stateInfo.Next then
+                NextLabel.Text = "Next: " .. stateInfo.Next
+                NextLabel.Visible = true
+                NextIcon.Visible = true
+            else
+                NextLabel.Visible = false
+                NextIcon.Visible = false
+            end
+
+            Holder.Size = UDim2.new(1, 0, 0, targetHeight)
+            Groupbox:Resize()
+        end
+
+        function MacroStatus:SetVisible(Visible)
+            MacroStatus.Visible = Visible
+            Holder.Visible = Visible
+            Groupbox:Resize()
+        end
+
+        function MacroStatus:SetText(Text)
+            local cleanText = Text
+            if Text:sub(1, 8) == "Status: " then
+                cleanText = Text:sub(9)
+            end
+            MacroStatus:Update({ State = cleanText })
+        end
+
+        table.insert(Groupbox.Elements, MacroStatus)
+        Groupbox:Resize()
+
+        if Idx then
+            Library.Options[Idx] = MacroStatus
+        end
+
+        return MacroStatus
     end
 
     function Funcs:AddCheckbox(Idx, Info)
