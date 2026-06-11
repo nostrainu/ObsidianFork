@@ -33,7 +33,7 @@ local CustomImageManager = {}
 local CustomImageManagerAssets = {
     TransparencyTexture = {
         RobloxId = 139785960036434,
-        Path = "Obsidian/assets/TransparencyTexture.png",
+        Path = "yy/assets/TransparencyTexture.png",
         URL = BaseURL .. "assets/TransparencyTexture.png",
 
         Id = nil,
@@ -41,7 +41,7 @@ local CustomImageManagerAssets = {
 
     SaturationMap = {
         RobloxId = 4155801252,
-        Path = "Obsidian/assets/SaturationMap.png",
+        Path = "yy/assets/SaturationMap.png",
         URL = BaseURL .. "assets/SaturationMap.png",
 
         Id = nil,
@@ -49,7 +49,7 @@ local CustomImageManagerAssets = {
 
     LoadingIcon = {
         RobloxId = 97544096941083,
-        Path = "Obsidian/assets/LoadingIcon.png",
+        Path = "yy/assets/LoadingIcon.png",
         URL = BaseURL .. "assets/LoadingIcon.png",
 
         Id = nil,
@@ -57,7 +57,7 @@ local CustomImageManagerAssets = {
 
     CheckIcon = {
         RobloxId = 97682394690683,
-        Path = "Obsidian/assets/CheckIcon.png",
+        Path = "yy/assets/CheckIcon.png",
         URL = BaseURL .. "assets/CheckIcon.png",
 
         Id = nil,
@@ -65,7 +65,7 @@ local CustomImageManagerAssets = {
 
     PopCatIdleClosed = {
         RobloxId = 0,
-        Path = "pop_cat_idle_closed.png",
+        Path = "yy/assets/pop_cat_idle_closed.png",
         URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_idle_closed.png",
 
         Id = nil,
@@ -73,7 +73,7 @@ local CustomImageManagerAssets = {
 
     PopCatOpen = {
         RobloxId = 0,
-        Path = "pop_cat_open.png",
+        Path = "yy/assets/pop_cat_open.png",
         URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_open.png",
 
         Id = nil,
@@ -81,7 +81,7 @@ local CustomImageManagerAssets = {
 
     PopCatSmirkClosed = {
         RobloxId = 0,
-        Path = "pop_cat_smirk_closed.png",
+        Path = "yy/assets/pop_cat_smirk_closed.png",
         URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_smirk_closed.png",
 
         Id = nil,
@@ -89,7 +89,7 @@ local CustomImageManagerAssets = {
 
     PopCatDonut = {
         RobloxId = 0,
-        Path = "pop_cat_donut.png",
+        Path = "yy/assets/pop_cat_donut.png",
         URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_donut.png",
 
         Id = nil,
@@ -133,7 +133,7 @@ do
 
         CustomImageManagerAssets[AssetName] = {
             RobloxId = RobloxAssetId,
-            Path = string.format("Obsidian/custom_assets/%s", AssetName),
+            Path = string.format("yy/assets/%s", AssetName),
             URL = URL,
 
             Id = nil,
@@ -380,6 +380,7 @@ local Templates = {
         
         ShowMobileButtons = true,
         MobileButtonsSide = "Left",
+        DisableFloatingMenu = false,
 
         PopCatDimensions = Vector2.new(418, 418),
 
@@ -6962,6 +6963,7 @@ function Library:CreateWindow(WindowInfo)
     Library.ToggleKeybind = WindowInfo.ToggleKeybind
     Library.GlobalSearch = WindowInfo.GlobalSearch
     Library.ShowMobileButtons = WindowInfo.ShowMobileButtons
+    Library.DisableFloatingMenu = WindowInfo.DisableFloatingMenu
 
     local MainFrame
     local DividerLine
@@ -10726,6 +10728,11 @@ function Library:CreateWindow(WindowInfo)
             task.delay(0.3, function() fabClicked = false end)
             
             ResetFadeTimer()
+            
+            if Library.DisableFloatingMenu then
+                Library:Toggle()
+                return
+            end
             
             clickCount = clickCount + 1
             local currentSeq = clickSequenceNum + 1
