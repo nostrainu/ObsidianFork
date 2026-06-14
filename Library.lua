@@ -4243,79 +4243,114 @@ do
             BackgroundColor3 = "MainColor",
             BackgroundTransparency = 0.5,
             ClipsDescendants = true,
-            Size = UDim2.new(1, 0, 0, 32),
+            Size = UDim2.new(1, 0, 0, 50),
             Visible = MacroStatus.Visible,
             Parent = Container,
         })
-        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Holder }))
+        table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, Library.CornerRadius / 2), Parent = Holder }))
         Library:AddOutline(Holder)
 
-        -- Top Status Row
+        local IndicatorBar = New("Frame", {
+            BackgroundColor3 = "OutlineColor",
+            BorderSizePixel = 0,
+            Position = UDim2.fromScale(0, 0),
+            Size = UDim2.new(0, 3, 1, 0),
+            Parent = Holder,
+        })
+
+        local ContentFrame = New("Frame", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(12, 4),
+            Size = UDim2.new(1, -20, 1, -8),
+            Parent = Holder,
+        })
+
         local StatusIcon = New("ImageLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(8, 8),
-            Size = UDim2.fromOffset(16, 16),
+            Position = UDim2.fromOffset(0, 0),
+            Size = UDim2.fromOffset(12, 12),
             ImageColor3 = "AccentColor",
-            Parent = Holder,
+            Parent = ContentFrame,
         })
 
         local StatusLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(30, 8),
-            Size = UDim2.new(1, -38, 0, 16),
+            Position = UDim2.fromOffset(16, 0),
+            Size = UDim2.new(0.6, -16, 0, 12),
             Text = "Status: Idle",
-            TextSize = 13,
+            TextSize = 12,
             Font = Enum.Font.Code,
             TextColor3 = "FontColor",
             TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = Holder,
+            Parent = ContentFrame,
         })
 
-        -- Current Action Row (indented and dimmed)
-        local CurrentIcon = New("ImageLabel", {
+        local StepLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(16, 28),
-            Size = UDim2.fromOffset(14, 14),
-            ImageColor3 = "FontColor",
-            ImageTransparency = 0.3,
-            Parent = Holder,
+            Position = UDim2.new(0.6, 0, 0, 0),
+            Size = UDim2.new(0.4, 0, 0, 12),
+            Text = "",
+            TextSize = 12,
+            Font = Enum.Font.Code,
+            TextColor3 = "FontColor",
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = ContentFrame,
         })
 
         local CurrentLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(36, 28),
-            Size = UDim2.new(1, -44, 0, 14),
+            Position = UDim2.new(0, 0, 0, 15),
+            Size = UDim2.new(1, 0, 0, 12),
             Text = "Current: None",
-            TextSize = 12,
+            TextSize = 11,
             Font = Enum.Font.Code,
             TextColor3 = "FontColor",
             TextTransparency = 0.3,
             TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = Holder,
-        })
-
-        -- Next Action Row (further indents / lighter transparency)
-        local NextIcon = New("ImageLabel", {
-            BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(16, 46),
-            Size = UDim2.fromOffset(14, 14),
-            ImageColor3 = "FontColor",
-            ImageTransparency = 0.55,
-            Parent = Holder,
+            Parent = ContentFrame,
         })
 
         local NextLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(36, 46),
-            Size = UDim2.new(1, -44, 0, 14),
+            Position = UDim2.new(0, 0, 0, 28),
+            Size = UDim2.new(1, 0, 0, 12),
             Text = "Next: None",
-            TextSize = 12,
+            TextSize = 11,
             Font = Enum.Font.Code,
             TextColor3 = "FontColor",
             TextTransparency = 0.55,
             TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = ContentFrame,
+        })
+
+        local ProgressBarBackground = New("Frame", {
+            BackgroundColor3 = "OutlineColor",
+            BorderSizePixel = 0,
+            Position = UDim2.new(0, 3, 1, -2),
+            Size = UDim2.new(1, -3, 0, 2),
             Parent = Holder,
         })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, Library.CornerRadius / 2),
+                Parent = ProgressBarBackground
+            })
+        )
+
+        local ProgressBarFill = New("Frame", {
+            BackgroundColor3 = "AccentColor",
+            BorderSizePixel = 0,
+            Size = UDim2.fromScale(0, 1),
+            Parent = ProgressBarBackground,
+        })
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, Library.CornerRadius / 2),
+                Parent = ProgressBarFill
+            })
+        )
 
         local function ApplyIcon(imageLabel, iconName)
             if iconName then
@@ -4333,58 +4368,53 @@ do
             end
         end
 
-        -- Initialize default icons
         ApplyIcon(StatusIcon, "play")
-        ApplyIcon(CurrentIcon, "target")
-        ApplyIcon(NextIcon, "skip-forward")
 
         function MacroStatus:Update(stateInfo)
             stateInfo = stateInfo or {}
 
-            local targetHeight = 32
-
             if stateInfo.State then
                 StatusLabel.Text = "Status: " .. stateInfo.State
                 local stateLower = stateInfo.State:lower()
+
+                local stepText = ""
+                local progressScale = 0
+                local step, total = stateInfo.State:match("%((%d+)/(%d+)%)")
+                if step and total then
+                    stepText = string.format("Step: %s / %s", step, total)
+                    progressScale = math.clamp(tonumber(step) / tonumber(total), 0, 1)
+                elseif stateLower:find("recording") then
+                    stepText = "Recording..."
+                end
+                StepLabel.Text = stepText
+                ProgressBarFill.Size = UDim2.fromScale(progressScale, 1)
+
                 if stateLower:find("playing") then
                     ApplyIcon(StatusIcon, "play")
                     StatusIcon.ImageColor3 = Library.Scheme.AccentColor
-                    targetHeight = 72
+                    IndicatorBar.BackgroundColor3 = Library.Scheme.AccentColor
                 elseif stateLower:find("recording") then
                     ApplyIcon(StatusIcon, "circle")
                     StatusIcon.ImageColor3 = Library.Scheme.RedColor or Color3.fromRGB(255, 50, 50)
-                    targetHeight = 52
-                elseif stateLower:find("done") or stateLower:find("stopped") or stateLower:find("idle") then
+                    IndicatorBar.BackgroundColor3 = Library.Scheme.RedColor or Color3.fromRGB(255, 50, 50)
+                else
                     ApplyIcon(StatusIcon, "square")
                     StatusIcon.ImageColor3 = Library.Scheme.FontColor
-                    targetHeight = 32
-                else
-                    ApplyIcon(StatusIcon, "play")
-                    StatusIcon.ImageColor3 = Library.Scheme.AccentColor
-                    targetHeight = 32
+                    IndicatorBar.BackgroundColor3 = Library.Scheme.OutlineColor
                 end
             end
 
             if stateInfo.Current then
                 CurrentLabel.Text = "Current: " .. stateInfo.Current
-                CurrentLabel.Visible = true
-                CurrentIcon.Visible = true
             else
-                CurrentLabel.Visible = false
-                CurrentIcon.Visible = false
+                CurrentLabel.Text = "Current: None"
             end
 
             if stateInfo.Next then
                 NextLabel.Text = "Next: " .. stateInfo.Next
-                NextLabel.Visible = true
-                NextIcon.Visible = true
             else
-                NextLabel.Visible = false
-                NextIcon.Visible = false
+                NextLabel.Text = "Next: None"
             end
-
-            Holder.Size = UDim2.new(1, 0, 0, targetHeight)
-            Groupbox:Resize()
         end
 
         function MacroStatus:SetVisible(Visible)
