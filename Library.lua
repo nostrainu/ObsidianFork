@@ -5980,6 +5980,7 @@ do
 
         local Dragging, Pinching = false, false
         local LastMousePos, LastPinchDist = nil, 0
+        local LastInteractionTime = os.clock()
 
         local ViewportObject = Info.Object
         if Info.Clone and typeof(Info.Object) == "Instance" then
@@ -6021,14 +6022,19 @@ do
             return select(2, model:GetBoundingBox())
         end
 
-        local function FocusCamera()
+        local function GetFocusCFrame()
+            if not Viewport.Object then
+                return Viewport.Camera.CFrame
+            end
             local ModelSize = GetModelSize(Viewport.Object)
             local MaxExtent = math.max(ModelSize.X, ModelSize.Y, ModelSize.Z)
             local CameraDistance = MaxExtent * 2
             local ModelPosition = Viewport.Object:GetPivot().Position
+            return CFrame.new(ModelPosition + Vector3.new(0, MaxExtent / 2, CameraDistance), ModelPosition)
+        end
 
-            Viewport.Camera.CFrame =
-                CFrame.new(ModelPosition + Vector3.new(0, MaxExtent / 2, CameraDistance), ModelPosition)
+        local function FocusCamera()
+            Viewport.Camera.CFrame = GetFocusCFrame()
         end
 
         local Holder = New("Frame", {
@@ -6093,9 +6099,11 @@ do
             if input.UserInputType == Enum.UserInputType.MouseButton2 then
                 Dragging = true
                 LastMousePos = input.Position
+                LastInteractionTime = os.clock()
             elseif input.UserInputType == Enum.UserInputType.Touch and not Pinching then
                 Dragging = true
                 LastMousePos = input.Position
+                LastInteractionTime = os.clock()
             end
         end)
 
@@ -6152,6 +6160,7 @@ do
             end
 
             if input.UserInputType == Enum.UserInputType.MouseWheel then
+                LastInteractionTime = os.clock()
                 local ZoomAmount = input.Position.Z * 2
                 Viewport.Camera.CFrame += Viewport.Camera.CFrame.LookVector * ZoomAmount
             end
@@ -6170,11 +6179,13 @@ do
                 Pinching = true
                 Dragging = false
                 LastPinchDist = (touchPositions[1] - touchPositions[2]).Magnitude
+                LastInteractionTime = os.clock()
             elseif state == Enum.UserInputState.Change then
                 local currentDist = (touchPositions[1] - touchPositions[2]).Magnitude
                 local delta = (currentDist - LastPinchDist) * 0.1
                 LastPinchDist = currentDist
                 Viewport.Camera.CFrame += Viewport.Camera.CFrame.LookVector * delta
+                LastInteractionTime = os.clock()
             elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
                 Pinching = false
             end
@@ -6191,9 +6202,21 @@ do
             if Library.Unloaded or not ViewportFrame.Parent or not Viewport.Object or not Viewport.Object.Parent then
                 return
             end
-            if ViewportFrame.AbsoluteSize.X > 0 and not Dragging and not Pinching then
+            if ViewportFrame.AbsoluteSize.X > 0 then
+                if Dragging or Pinching then
+                    LastInteractionTime = os.clock()
+                end
                 pcall(function()
-                    Viewport.Object:PivotTo(Viewport.Object:GetPivot() * CFrame.Angles(0, dt * 0.5, 0))
+                    if not Dragging and not Pinching then
+                        local pivot = Viewport.Object:GetPivot()
+                        local pos = pivot.Position
+                        local rot = CFrame.Angles(0, dt * 0.5, 0) * (pivot - pos)
+                        Viewport.Object:PivotTo(CFrame.new(pos) * rot)
+                    end
+                    if os.clock() - LastInteractionTime > 5 then
+                        local targetCFrame = GetFocusCFrame()
+                        Viewport.Camera.CFrame = Viewport.Camera.CFrame:Lerp(targetCFrame, math.min(dt * 2.5, 1))
+                    end
                 end)
             end
         end))
