@@ -6187,6 +6187,17 @@ do
             end
         end
 
+        Library:GiveSignal(RunService.RenderStepped:Connect(function(dt)
+            if Library.Unloaded or not ViewportFrame.Parent or not Viewport.Object or not Viewport.Object.Parent then
+                return
+            end
+            if ViewportFrame.AbsoluteSize.X > 0 and not Dragging and not Pinching then
+                pcall(function()
+                    Viewport.Object:PivotTo(Viewport.Object:GetPivot() * CFrame.Angles(0, dt * 0.5, 0))
+                end)
+            end
+        end))
+
         function Viewport:SetObject(Object: Instance, Clone: boolean?)
             assert(Object, "Object cannot be nil.")
 
