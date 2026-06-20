@@ -1977,6 +1977,23 @@ end
 
 --// Context Menu \\--
 local CurrentMenu
+local function IsClipped(Obj)
+    local Parent = Obj.Parent
+    while Parent do
+        if Parent:IsA("ScrollingFrame") then
+            local pPos = Parent.AbsolutePosition
+            local pSize = Parent.AbsoluteSize
+            local oPos = Obj.AbsolutePosition
+            local oSize = Obj.AbsoluteSize
+            if oPos.Y < pPos.Y or (oPos.Y + oSize.Y) > (pPos.Y + pSize.Y) then
+                return true
+            end
+        end
+        Parent = Parent.Parent
+    end
+    return false
+end
+
 function Library:AddContextMenu(
     Holder: GuiObject,
     Size: UDim2 | () -> (),
@@ -2082,6 +2099,11 @@ function Library:AddContextMenu(
         Menu.Visible = true
 
         Table.Signal = Holder:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+            if IsClipped(Holder) then
+                Table:Close()
+                return
+            end
+
             if typeof(Offset) == "function" then
                 Menu.Position = UDim2.fromOffset(
                     math.floor(Holder.AbsolutePosition.X + Offset()[1]),
@@ -6068,7 +6090,7 @@ do
                 return
             end
 
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
                 Dragging = true
                 LastMousePos = input.Position
             elseif input.UserInputType == Enum.UserInputType.Touch and not Pinching then
@@ -6086,7 +6108,7 @@ do
                 return
             end
 
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
                 Dragging = false
             elseif input.UserInputType == Enum.UserInputType.Touch then
                 Dragging = false
