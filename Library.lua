@@ -11712,6 +11712,321 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange))
 Library:GiveSignal(Teams.ChildAdded:Connect(OnTeamChange))
 Library:GiveSignal(Teams.ChildRemoved:Connect(OnTeamChange))
 
+--// Collapsible Widget Feature \\--
+local WidgetClass = {}
+WidgetClass.__index = WidgetClass
+
+function Library:CreateWidget(Config)
+    Config = Library:Validate(Config, {
+        Title = "",
+        Position = UDim2.new(1, -255, 0, 90),
+        Width = 240,
+        Visible = false,
+    })
+
+    local Widget = setmetatable({}, WidgetClass)
+    Widget.Config = Config
+    Widget.Rows = {}
+    Widget.Expanded = true
+    Widget.Visible = Config.Visible
+
+    local ScreenGui = New("ScreenGui", {
+        Name = "ObsidianWidget_" .. (Config.Title ~= "" and Config.Title or "Unnamed"),
+        DisplayOrder = 995,
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    })
+    ParentUI(ScreenGui)
+    Widget.ScreenGui = ScreenGui
+
+    local Container = New("Frame", {
+        Name = "Container",
+        Size = UDim2.new(0, Config.Width, 0, 0),
+        Position = Config.Position,
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 0.35,
+        BorderSizePixel = 0,
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Visible = Config.Visible,
+        Parent = ScreenGui,
+    })
+    Widget.Container = Container
+
+    local Corner = New("UICorner", {
+        CornerRadius = UDim.new(0, 8),
+        Parent = Container,
+    })
+
+    local Stroke = New("UIStroke", {
+        Color = "OutlineColor",
+        Thickness = 1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Transparency = 0.5,
+        Parent = Container,
+    })
+
+    local ListLayout = New("UIListLayout", {
+        Padding = UDim.new(0, 4),
+        FillDirection = Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = Container,
+    })
+
+    local Padding = New("UIPadding", {
+        PaddingTop = UDim.new(0, 6),
+        PaddingBottom = UDim.new(0, 6),
+        PaddingLeft = UDim.new(0, 6),
+        PaddingRight = UDim.new(0, 6),
+        Parent = Container,
+    })
+
+    if Config.Title ~= "" then
+        local Header = New("Frame", {
+            Name = "Header",
+            Size = UDim2.new(1, 0, 0, 24),
+            BackgroundTransparency = 1,
+            Parent = Container,
+        })
+        
+        local TitleLabel = New("TextLabel", {
+            Name = "TitleText",
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Text = Config.Title:upper(),
+            TextColor3 = "AccentColor",
+            TextSize = 12,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            Parent = Header,
+        })
+        
+        local HeaderDivider = New("Frame", {
+            Name = "Divider",
+            Size = UDim2.new(1, 0, 0, 1),
+            BackgroundColor3 = "OutlineColor",
+            BackgroundTransparency = 0.5,
+            BorderSizePixel = 0,
+            Parent = Header,
+            Position = UDim2.new(0, 0, 1, 0),
+        })
+    end
+
+    local ToggleButton = New("ImageButton", {
+        Name = "Toggle",
+        Size = UDim2.fromOffset(36, 36),
+        Position = UDim2.new(1, -50, 1, -50),
+        BackgroundColor3 = "MainColor",
+        BackgroundTransparency = 0.35,
+        Image = "rbxassetid://10723415694",
+        ImageColor3 = "FontColor",
+        Visible = Config.Visible,
+        Parent = ScreenGui,
+    })
+    Widget.ToggleButton = ToggleButton
+
+    local ToggleCorner = New("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = ToggleButton,
+    })
+
+    local ToggleStroke = New("UIStroke", {
+        Color = "OutlineColor",
+        Thickness = 1,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Transparency = 0.5,
+        Parent = ToggleButton,
+    })
+
+    local chevronLeft = Library:GetCustomIcon("chevron-left")
+    local chevronRight = Library:GetCustomIcon("chevron-right")
+    
+    if chevronLeft and chevronRight then
+        ToggleButton.Image = chevronLeft.Url
+        ToggleButton.ImageRectOffset = chevronLeft.ImageRectOffset
+        ToggleButton.ImageRectSize = chevronLeft.ImageRectSize
+    end
+
+    ToggleButton.MouseButton1Click:Connect(function()
+        Widget:SetExpanded(not Widget.Expanded)
+    end)
+
+    table.insert(Library.UnloadSignals, {
+        Disconnect = function()
+            Widget:Destroy()
+        end
+    })
+
+    return Widget
+end
+
+function WidgetClass:SetExpanded(State)
+    self.Expanded = State
+    
+    local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local targetPos
+    local targetRotation = 0
+    
+    if State then
+        self.Container.Visible = true
+        targetPos = self.Config.Position
+        targetRotation = 0
+    else
+        targetPos = UDim2.new(1, 20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset)
+        targetRotation = 180
+    end
+    
+    TweenService:Create(self.Container, tweenInfo, { Position = targetPos }):Play()
+    TweenService:Create(self.ToggleButton, tweenInfo, { Rotation = targetRotation }):Play()
+end
+
+function WidgetClass:SetVisible(State)
+    self.Visible = State
+    self.ScreenGui.Enabled = State
+end
+
+function WidgetClass:AddRow(Id, RowConfig)
+    RowConfig = Library:Validate(RowConfig, {
+        Icon = nil,
+        Text = "",
+        Value = "",
+        Color = Color3.fromRGB(240, 240, 240),
+    })
+
+    if self.Rows[Id] then
+        self:UpdateRow(Id, RowConfig)
+        return
+    end
+
+    local Row = New("Frame", {
+        Name = Id,
+        Size = UDim2.new(1, 0, 0, 32),
+        BackgroundColor3 = "OutlineColor",
+        BackgroundTransparency = 0.7,
+        BorderSizePixel = 0,
+        Parent = self.Container,
+    })
+
+    local RowCorner = New("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = Row,
+    })
+
+    local IconImage = New("ImageLabel", {
+        Name = "Icon",
+        Position = UDim2.new(0, 6, 0.5, -10),
+        Size = UDim2.new(0, 20, 0, 20),
+        BackgroundTransparency = 1,
+        Visible = false,
+        Parent = Row,
+    })
+
+    local NameLabel = New("TextLabel", {
+        Name = "Name",
+        Position = UDim2.new(0, 32, 0, 0),
+        Size = UDim2.new(0.5, -32, 1, 0),
+        BackgroundTransparency = 1,
+        Text = RowConfig.Text,
+        TextColor3 = "FontColor",
+        TextSize = 13,
+        Font = Enum.Font.GothamSemibold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = Row,
+    })
+
+    local ValueLabel = New("TextLabel", {
+        Name = "Value",
+        Position = UDim2.new(0.5, 0, 0, 0),
+        Size = UDim2.new(0.5, -6, 1, 0),
+        BackgroundTransparency = 1,
+        Text = RowConfig.Value,
+        TextColor3 = RowConfig.Color,
+        TextSize = 12,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = Row,
+    })
+
+    if RowConfig.Icon then
+        local customIcon = Library:GetCustomIcon(RowConfig.Icon)
+        if customIcon then
+            IconImage.Image = customIcon.Url
+            IconImage.ImageRectOffset = customIcon.ImageRectOffset
+            IconImage.ImageRectSize = customIcon.ImageRectSize
+            IconImage.ImageColor3 = RowConfig.Color or Color3.fromRGB(255, 255, 255)
+            IconImage.Visible = true
+        end
+        NameLabel.Position = UDim2.new(0, 32, 0, 0)
+        NameLabel.Size = UDim2.new(0.5, -32, 1, 0)
+    else
+        IconImage.Visible = false
+        NameLabel.Position = UDim2.new(0, 6, 0, 0)
+        NameLabel.Size = UDim2.new(0.5, -6, 1, 0)
+    end
+
+    self.Rows[Id] = {
+        Frame = Row,
+        Icon = IconImage,
+        NameLabel = NameLabel,
+        ValueLabel = ValueLabel,
+    }
+end
+
+function WidgetClass:UpdateRow(Id, UpdateConfig)
+    local RowData = self.Rows[Id]
+    if not RowData then return end
+
+    if UpdateConfig.Text ~= nil then
+        RowData.NameLabel.Text = UpdateConfig.Text
+    end
+
+    if UpdateConfig.Value ~= nil then
+        RowData.ValueLabel.Text = UpdateConfig.Value
+    end
+
+    if UpdateConfig.Color ~= nil then
+        RowData.ValueLabel.TextColor3 = UpdateConfig.Color
+        if RowData.Icon.Visible then
+            RowData.Icon.ImageColor3 = UpdateConfig.Color
+        end
+    end
+
+    if UpdateConfig.Icon ~= nil then
+        local customIcon = Library:GetCustomIcon(UpdateConfig.Icon)
+        if customIcon then
+            RowData.Icon.Image = customIcon.Url
+            RowData.Icon.ImageRectOffset = customIcon.ImageRectOffset
+            RowData.Icon.ImageRectSize = customIcon.ImageRectSize
+            RowData.Icon.Visible = true
+            RowData.NameLabel.Position = UDim2.new(0, 32, 0, 0)
+            RowData.NameLabel.Size = UDim2.new(0.5, -32, 1, 0)
+        else
+            RowData.Icon.Visible = false
+            RowData.NameLabel.Position = UDim2.new(0, 6, 0, 0)
+            RowData.NameLabel.Size = UDim2.new(0.5, -6, 1, 0)
+        end
+    end
+end
+
+function WidgetClass:RemoveRow(Id)
+    local RowData = self.Rows[Id]
+    if RowData then
+        pcall(function() RowData.Frame:Destroy() end)
+        self.Rows[Id] = nil
+    end
+end
+
+function WidgetClass:Clear()
+    for Id, RowData in pairs(self.Rows) do
+        pcall(function() RowData.Frame:Destroy() end)
+    end
+    table.clear(self.Rows)
+end
+
+function WidgetClass:Destroy()
+    self:Clear()
+    pcall(function() self.ScreenGui:Destroy() end)
+end
+
 print("yey")
 getgenv().Library = Library
 return Library
