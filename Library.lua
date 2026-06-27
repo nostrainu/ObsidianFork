@@ -4204,26 +4204,48 @@ do
         end
 
         local BaseY = Info.Expiry and 126 or 112
-        CardFrame.Size = UDim2.new(1, 0, 0, BaseY + 48)
+        CardFrame.Size = UDim2.new(1, 0, 0, BaseY)
 
         local BottomDivider = Library:MakeLine(CardFrame, {
             Position = UDim2.fromOffset(10, BaseY),
             Size = UDim2.new(1, -20, 0, 1),
+            Visible = false,
         })
 
         local ButtonsHolder = New("Frame", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(0, BaseY + 1),
             Size = UDim2.new(1, 0, 0, 47),
+            Visible = false,
             Parent = CardFrame,
         })
 
-        local function createButton(name, iconName, xOffsetPct, callback)
+        local ListLayout = New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = ButtonsHolder,
+        })
+
+        Card.Buttons = {}
+
+        function Card:AddButton(BtnInfo)
+            BtnInfo = Library:Validate(BtnInfo, {
+                Name = "",
+                Icon = "",
+                Callback = function() end
+            })
+
+            if #Card.Buttons == 0 then
+                BottomDivider.Visible = true
+                ButtonsHolder.Visible = true
+                CardFrame.Size = UDim2.new(1, 0, 0, BaseY + 48)
+                Groupbox:Resize()
+            end
+
             local btn = New("TextButton", {
-                Name = name,
+                Name = BtnInfo.Name,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(xOffsetPct, 0, 0, 0),
-                Size = UDim2.new(0.333, 0, 1, 0),
+                Size = UDim2.new(0, 0, 1, 0),
                 Text = "",
                 Parent = ButtonsHolder,
             })
@@ -4239,7 +4261,7 @@ do
                 Parent = btn,
             })
             
-            local iconData = Library:GetCustomIcon(iconName)
+            local iconData = Library:GetCustomIcon(BtnInfo.Icon)
             if iconData then
                 icon.Image = iconData.Url
                 icon.ImageRectOffset = iconData.ImageRectOffset
@@ -4251,7 +4273,7 @@ do
                 Size = UDim2.new(1, 0, 0, 12),
                 Position = UDim2.new(0, 0, 0, 26),
                 BackgroundTransparency = 1,
-                Text = name,
+                Text = BtnInfo.Name,
                 TextSize = 10,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = "FontColor",
@@ -4269,43 +4291,16 @@ do
                 TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.FontColor, TextTransparency = 0.35 }):Play()
             end)
             
-            btn.MouseButton1Click:Connect(callback)
+            btn.MouseButton1Click:Connect(BtnInfo.Callback)
+
+            table.insert(Card.Buttons, btn)
+
+            local count = #Card.Buttons
+            local widthPct = 1 / count
+            for _, b in ipairs(Card.Buttons) do
+                b.Size = UDim2.new(widthPct, 0, 1, 0)
+            end
         end
-
-        createButton("Account", "user", 0, function()
-            local success, err = pcall(function()
-                setclipboard(tostring(LocalPlayer.UserId))
-            end)
-            Library:Notify({
-                Title = "Account Profile",
-                Text = success and "Roblox User ID copied to clipboard!" or ("User ID: " .. tostring(LocalPlayer.UserId)),
-                Duration = 4
-            })
-        end)
-
-        createButton("Discord", "message-square", 0.333, function()
-            local discordLink = Info.Discord or "https://discord.gg/bobcat"
-            local success, err = pcall(function()
-                setclipboard(discordLink)
-            end)
-            Library:Notify({
-                Title = "Discord Link",
-                Text = success and "Discord link copied to clipboard!" or ("Link: " .. discordLink),
-                Duration = 4
-            })
-        end)
-
-        createButton("Shop", "shopping-cart", 0.666, function()
-            local shopLink = Info.Shop or "https://bobcat-hub.mysellix.io"
-            local success, err = pcall(function()
-                setclipboard(shopLink)
-            end)
-            Library:Notify({
-                Title = "Shop Link",
-                Text = success and "Shop link copied to clipboard!" or ("Link: " .. shopLink),
-                Duration = 4
-            })
-        end)
 
         function Card:SetVisible(Visible)
             Card.Visible = Visible
