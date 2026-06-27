@@ -4259,16 +4259,19 @@ do
             Visible = false,
         })
 
+        local ButtonRowHeight = 47
+
         local ButtonsHolder = New("Frame", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(0, BaseY + 1),
-            Size = UDim2.new(1, 0, 0, 47),
+            Size = UDim2.new(1, 0, 0, ButtonRowHeight),
             Visible = false,
             Parent = CardFrame,
         })
 
-        local ListLayout = New("UIListLayout", {
-            FillDirection = Enum.FillDirection.Horizontal,
+        local GridLayout = New("UIGridLayout", {
+            CellSize = UDim2.new(1/3, 0, 0, ButtonRowHeight),
+            CellPadding = UDim2.new(0, 0, 0, 0),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = ButtonsHolder,
         })
@@ -4344,14 +4347,18 @@ do
             if #Card.Buttons == 0 then
                 BottomDivider.Visible = true
                 ButtonsHolder.Visible = true
-                CardFrame.Size = UDim2.new(1, 0, 0, BaseY + 48)
-                Groupbox:Resize()
             end
+
+            local rows = math.ceil((#Card.Buttons + 1) / 3)
+            local holderHeight = rows * ButtonRowHeight
+            ButtonsHolder.Size = UDim2.new(1, 0, 0, holderHeight)
+            CardFrame.Size = UDim2.new(1, 0, 0, BaseY + holderHeight + 1)
+            Groupbox:Resize()
 
             local btn = New("TextButton", {
                 Name = BtnInfo.Name,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(0, 0, 1, 0),
+                Size = UDim2.new(1/3, 0, 0, ButtonRowHeight),
                 Text = "",
                 Parent = ButtonsHolder,
             })
@@ -4430,12 +4437,6 @@ do
             end)
 
             table.insert(Card.Buttons, btn)
-
-            local count = #Card.Buttons
-            local widthPct = 1 / count
-            for _, b in ipairs(Card.Buttons) do
-                b.Size = UDim2.new(widthPct, 0, 1, 0)
-            end
         end
 
         Card:AddButton({
