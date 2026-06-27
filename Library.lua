@@ -4253,8 +4253,6 @@ do
             })
         end
 
-
-
         local BottomDivider = Library:MakeLine(CardFrame, {
             Position = UDim2.fromOffset(10, BaseY),
             Size = UDim2.new(1, -20, 0, 1),
@@ -4317,7 +4315,6 @@ do
                     end
                 end
             end
-
             Card:AddButton({
                 Name = TabInfo.Name,
                 Icon = TabInfo.Icon,
@@ -4336,17 +4333,6 @@ do
         end
 
         Card.Buttons = {}
-
-        Card:AddButton({
-            Name = Info.AccountName or "Account",
-            Icon = Info.AccountIcon or "user",
-            Callback = function()
-                AccountView.Visible = true
-                for _, t in ipairs(Card.Tabs) do
-                    t.Container.Visible = false
-                end
-            end
-        })
 
         function Card:AddButton(BtnInfo)
             BtnInfo = Library:Validate(BtnInfo, {
@@ -4451,6 +4437,17 @@ do
                 b.Size = UDim2.new(widthPct, 0, 1, 0)
             end
         end
+
+        Card:AddButton({
+            Name = Info.AccountName,
+            Icon = Info.AccountIcon,
+            Callback = function()
+                AccountView.Visible = true
+                for _, t in ipairs(Card.Tabs) do
+                    t.Container.Visible = false
+                end
+            end
+        })
 
         function Card:SetVisible(Visible)
             Card.Visible = Visible
