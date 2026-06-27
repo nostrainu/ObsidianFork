@@ -274,7 +274,7 @@ local Library = {
     OriginalMinSize = Vector2.new(480, 360),
     MinSize = Vector2.new(480, 360),
     DPIScale = 1,
-    CornerRadius = 4,
+    CornerRadius = 12,
     CornerRadiusDropdown = false, -- Temporary
 
     IsLightTheme = false,
@@ -284,7 +284,7 @@ local Library = {
         AccentColor = Color3.fromRGB(255, 138, 128),
         OutlineColor = Color3.fromRGB(48, 44, 52),
         FontColor = Color3.fromRGB(235, 228, 220),
-        Font = Font.fromEnum(Enum.Font.Code),
+        Font = Font.fromEnum(Enum.Font.GothamMedium),
 
         RedColor = Color3.fromRGB(255, 50, 50),
         DestructiveColor = Color3.fromRGB(220, 38, 38),
@@ -375,7 +375,7 @@ local Templates = {
         ScrollLongText = true,
         CornerRadius = 4,
         NotifySide = "Right",
-        Font = Enum.Font.Code,
+        Font = Enum.Font.GothamMedium,
         ToggleKeybind = Enum.KeyCode.RightControl,
         
         ShowMobileButtons = true,
@@ -4098,7 +4098,7 @@ do
             Size = UDim2.new(1, 0, 0, 14),
             Text = LocalPlayer.DisplayName,
             TextSize = 14,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = InfoStack,
@@ -4109,7 +4109,7 @@ do
             Size = UDim2.new(1, 0, 0, 11),
             Text = "@" .. LocalPlayer.Name,
             TextSize = 11,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextTransparency = 0.5,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -4143,7 +4143,7 @@ do
             BackgroundTransparency = 1,
             Text = RoleText,
             TextSize = 10,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "AccentColor",
             Parent = RoleBadge,
         })
@@ -4166,7 +4166,7 @@ do
             Size = UDim2.new(0.5, 0, 0, 12),
             Text = "Key: " .. tostring(KeyType),
             TextSize = 11,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextTransparency = 0.35,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -4180,7 +4180,7 @@ do
             Size = UDim2.new(0.5, 0, 0, 12),
             Text = "Client: " .. identifyexecutor(),
             TextSize = 11,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextTransparency = 0.35,
             TextXAlignment = Enum.TextXAlignment.Right,
@@ -4196,7 +4196,7 @@ do
                 Size = UDim2.new(1, 0, 0, 12),
                 Text = "Expires: " .. tostring(Info.Expiry),
                 TextSize = 11,
-                Font = Enum.Font.Code,
+                Font = Enum.Font.GothamMedium,
                 TextColor3 = "FontColor",
                 TextTransparency = 0.35,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -4228,7 +4228,7 @@ do
                     Size = UDim2.new(1, 0, 0, 12),
                     Text = "Expires: " .. tostring(NewExpiry),
                     TextSize = 11,
-                    Font = Enum.Font.Code,
+                    Font = Enum.Font.GothamMedium,
                     TextColor3 = "FontColor",
                     TextTransparency = 0.35,
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -4301,7 +4301,7 @@ do
             Size = UDim2.new(0.6, -16, 0, 12),
             Text = "Status: Idle",
             TextSize = 12,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = ContentFrame,
@@ -4313,7 +4313,7 @@ do
             Size = UDim2.new(0.4, 0, 0, 12),
             Text = "",
             TextSize = 12,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextXAlignment = Enum.TextXAlignment.Right,
             Parent = ContentFrame,
@@ -4325,7 +4325,7 @@ do
             Size = UDim2.new(1, 0, 0, 12),
             Text = "Current: None",
             TextSize = 11,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextTransparency = 0.3,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -4338,7 +4338,7 @@ do
             Size = UDim2.new(1, 0, 0, 12),
             Text = "Next: None",
             TextSize = 11,
-            Font = Enum.Font.Code,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
             TextTransparency = 0.55,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -7252,6 +7252,17 @@ function Library:CreateWindow(WindowInfo)
             Parent = ScreenGui,
         })
         Library.MainFrame = MainFrame
+        MainFrame.ClipsDescendants = false
+
+        local Mascot = New("ImageLabel", {
+            Name = "Mascot",
+            Size = UDim2.fromOffset(56, 56),
+            Position = UDim2.new(0, 12, 0, -48),
+            BackgroundTransparency = 1,
+            Image = CustomImageManager.GetAsset("PopCatSmirkClosed"),
+            ZIndex = 10,
+            Parent = MainFrame,
+        })
         table.insert(
             Library.Corners,
             New("UICorner", {
@@ -8312,6 +8323,7 @@ function Library:CreateWindow(WindowInfo)
             do
                 GroupboxHolder = New("Frame", {
                     BackgroundColor3 = "BackgroundColor",
+                    BackgroundTransparency = 0.55,
                     Size = UDim2.fromScale(1, 0),
                     ClipsDescendants = true,
                     Parent = BoxHolder,
@@ -11837,11 +11849,11 @@ function Library:CreateWidget(Config)
         Parent = ToggleButton,
     })
 
-    local chevronLeft = Library:GetCustomIcon("chevron-left")
-    if chevronLeft then
-        ToggleButton.Image = chevronLeft.Url
-        ToggleButton.ImageRectOffset = chevronLeft.ImageRectOffset
-        ToggleButton.ImageRectSize = chevronLeft.ImageRectSize
+    local chevronRight = Library:GetCustomIcon("chevron-right")
+    if chevronRight then
+        ToggleButton.Image = chevronRight.Url
+        ToggleButton.ImageRectOffset = chevronRight.ImageRectOffset
+        ToggleButton.ImageRectSize = chevronRight.ImageRectSize
     end
 
     ToggleButton.MouseButton1Click:Connect(function()
@@ -11863,21 +11875,31 @@ function WidgetClass:SetExpanded(State)
     local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local targetPos
     local targetTogglePos
-    local targetRotation = 0
+    
+    local chevronLeft = Library:GetCustomIcon("chevron-left")
+    local chevronRight = Library:GetCustomIcon("chevron-right")
     
     if State then
         self.Container.Visible = true
         targetPos = self.Config.Position
         targetTogglePos = UDim2.new(1, self.Config.Position.X.Offset - 20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset + 10)
-        targetRotation = 180
+        if chevronRight then
+            self.ToggleButton.Image = chevronRight.Url
+            self.ToggleButton.ImageRectOffset = chevronRight.ImageRectOffset
+            self.ToggleButton.ImageRectSize = chevronRight.ImageRectSize
+        end
     else
         targetPos = UDim2.new(1, 0, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset)
         targetTogglePos = UDim2.new(1, -20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset + 10)
-        targetRotation = 0
+        if chevronLeft then
+            self.ToggleButton.Image = chevronLeft.Url
+            self.ToggleButton.ImageRectOffset = chevronLeft.ImageRectOffset
+            self.ToggleButton.ImageRectSize = chevronLeft.ImageRectSize
+        end
     end
     
     TweenService:Create(self.Container, tweenInfo, { Position = targetPos }):Play()
-    TweenService:Create(self.ToggleButton, tweenInfo, { Position = targetTogglePos, Rotation = targetRotation }):Play()
+    TweenService:Create(self.ToggleButton, tweenInfo, { Position = targetTogglePos }):Play()
 end
 
 function WidgetClass:SetVisible(State)
