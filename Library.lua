@@ -279,11 +279,11 @@ local Library = {
 
     IsLightTheme = false,
     Scheme = {
-        BackgroundColor = Color3.fromRGB(14, 12, 14),
-        MainColor = Color3.fromRGB(24, 20, 24),
-        AccentColor = Color3.fromRGB(255, 148, 172),
-        OutlineColor = Color3.fromRGB(42, 36, 42),
-        FontColor = Color3.new(1, 1, 1),
+        BackgroundColor = Color3.fromRGB(15, 14, 18),
+        MainColor = Color3.fromRGB(24, 22, 28),
+        AccentColor = Color3.fromRGB(255, 138, 128),
+        OutlineColor = Color3.fromRGB(48, 44, 52),
+        FontColor = Color3.fromRGB(235, 228, 220),
         Font = Font.fromEnum(Enum.Font.Code),
 
         RedColor = Color3.fromRGB(255, 50, 50),
@@ -11813,11 +11813,11 @@ function Library:CreateWidget(Config)
 
     local ToggleButton = New("ImageButton", {
         Name = "Toggle",
-        Size = UDim2.fromOffset(36, 36),
-        Position = UDim2.new(1, -50, 1, -50),
+        Size = UDim2.fromOffset(20, 36),
+        Position = UDim2.new(1, Config.Position.X.Offset - 20, Config.Position.Y.Scale, Config.Position.Y.Offset + 10),
         BackgroundColor3 = "MainColor",
         BackgroundTransparency = 0.35,
-        Image = "rbxassetid://10723415694",
+        BorderSizePixel = 0,
         ImageColor3 = "FontColor",
         Visible = Config.Visible,
         Parent = ScreenGui,
@@ -11825,7 +11825,7 @@ function Library:CreateWidget(Config)
     Widget.ToggleButton = ToggleButton
 
     local ToggleCorner = New("UICorner", {
-        CornerRadius = UDim.new(1, 0),
+        CornerRadius = UDim.new(0, 6),
         Parent = ToggleButton,
     })
 
@@ -11838,9 +11838,7 @@ function Library:CreateWidget(Config)
     })
 
     local chevronLeft = Library:GetCustomIcon("chevron-left")
-    local chevronRight = Library:GetCustomIcon("chevron-right")
-    
-    if chevronLeft and chevronRight then
+    if chevronLeft then
         ToggleButton.Image = chevronLeft.Url
         ToggleButton.ImageRectOffset = chevronLeft.ImageRectOffset
         ToggleButton.ImageRectSize = chevronLeft.ImageRectSize
@@ -11864,24 +11862,28 @@ function WidgetClass:SetExpanded(State)
     
     local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local targetPos
+    local targetTogglePos
     local targetRotation = 0
     
     if State then
         self.Container.Visible = true
         targetPos = self.Config.Position
-        targetRotation = 0
-    else
-        targetPos = UDim2.new(1, 20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset)
+        targetTogglePos = UDim2.new(1, self.Config.Position.X.Offset - 20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset + 10)
         targetRotation = 180
+    else
+        targetPos = UDim2.new(1, 0, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset)
+        targetTogglePos = UDim2.new(1, -20, self.Config.Position.Y.Scale, self.Config.Position.Y.Offset + 10)
+        targetRotation = 0
     end
     
     TweenService:Create(self.Container, tweenInfo, { Position = targetPos }):Play()
-    TweenService:Create(self.ToggleButton, tweenInfo, { Rotation = targetRotation }):Play()
+    TweenService:Create(self.ToggleButton, tweenInfo, { Position = targetTogglePos, Rotation = targetRotation }):Play()
 end
 
 function WidgetClass:SetVisible(State)
     self.Visible = State
     self.ScreenGui.Enabled = State
+    self.ToggleButton.Visible = State
 end
 
 function WidgetClass:AddRow(Id, RowConfig)
@@ -11901,7 +11903,7 @@ function WidgetClass:AddRow(Id, RowConfig)
         Name = Id,
         Size = UDim2.new(1, 0, 0, 32),
         BackgroundColor3 = "OutlineColor",
-        BackgroundTransparency = 0.7,
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Parent = self.Container,
     })
