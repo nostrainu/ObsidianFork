@@ -554,6 +554,20 @@ local Templates = {
     MacroStatus = {
         Visible = true,
     },
+    ProfileCard = {
+        Visible = true,
+        Role = "User",
+        KeyType = "Free",
+        Key = "Free",
+        Client = "None",
+        Executor = "None",
+        Avatar = "",
+        DisplayName = "",
+        Username = "",
+        AccountName = "Account",
+        AccountIcon = "user",
+        Expiry = nil,
+    },
 }
 
 local Places = {
@@ -4024,33 +4038,69 @@ do
             Info = Idx
             Idx = nil
         end
-        Info = Info or {}
+        Info = Library:Validate(Info, Templates.ProfileCard)
 
         local Groupbox = self
         local Container = Groupbox.Container
         local LocalPlayer = game.Players.LocalPlayer
         
         local Card = {
-            Visible = Info.Visible ~= false,
+            Visible = Info.Visible,
             Type = "ProfileCard",
         }
+
+        if Info.DisplayName == "" then
+            Info.DisplayName = LocalPlayer.DisplayName
+        end
+        if Info.Username == "" then
+            Info.Username = "@" .. LocalPlayer.Name
+        end
+
+        local detectClient = "None"
+        if Info.Client ~= "None" then
+            detectClient = Info.Client
+        elseif Info.Executor ~= "None" then
+            detectClient = Info.Executor
+        elseif identifyexecutor then
+            detectClient = identifyexecutor()
+        end
+
+        local keyTypeVal = "Free"
+        if Info.KeyType ~= "Free" then
+            keyTypeVal = Info.KeyType
+        elseif Info.Key ~= "Free" then
+            keyTypeVal = Info.Key
+        end
+
+        local defaultAvatar = "rbxassetid://10433222384"
+        local hasCustomAvatar = (Info.Avatar ~= "")
+        local avatarImageId = hasCustomAvatar and Info.Avatar or defaultAvatar
+
+        local BaseY = Info.Expiry and 126 or 112
 
         local CardFrame = New("Frame", {
             BackgroundColor3 = "MainColor",
             BackgroundTransparency = 0.3,
-            Size = UDim2.new(1, 0, 0, 115),
+            Size = UDim2.new(1, 0, 0, BaseY),
             Visible = Card.Visible,
             Parent = Container,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = CardFrame }))
         Library:AddOutline(CardFrame)
 
+        local AccountView = New("Frame", {
+            Name = "AccountView",
+            Size = UDim2.new(1, 0, 0, BaseY),
+            BackgroundTransparency = 1,
+            Parent = CardFrame,
+        })
+
         local AvatarHolder = New("Frame", {
             BackgroundColor3 = "BackgroundColor",
             BackgroundTransparency = 0.5,
             Position = UDim2.fromOffset(10, 10),
             Size = UDim2.fromOffset(56, 56),
-            Parent = CardFrame,
+            Parent = AccountView,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = AvatarHolder }))
         New("UIStroke", {
@@ -4064,29 +4114,31 @@ do
             BackgroundTransparency = 1,
             Position = UDim2.fromScale(0.05, 0.05),
             Size = UDim2.fromScale(0.9, 0.9),
-            Image = "rbxassetid://10433222384",
+            Image = avatarImageId,
             Parent = AvatarHolder,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = AvatarImage }))
 
-        task.spawn(function()
-            local success, content, isReady = pcall(function()
-                return game.Players:GetUserThumbnailAsync(
-                    LocalPlayer.UserId,
-                    Enum.ThumbnailType.HeadShot,
-                    Enum.ThumbnailSize.Size100x100
-                )
+        if not hasCustomAvatar then
+            task.spawn(function()
+                local success, content, isReady = pcall(function()
+                    return game.Players:GetUserThumbnailAsync(
+                        LocalPlayer.UserId,
+                        Enum.ThumbnailType.HeadShot,
+                        Enum.ThumbnailSize.Size100x100
+                    )
+                end)
+                if success and isReady then
+                    AvatarImage.Image = content
+                end
             end)
-            if success and isReady then
-                AvatarImage.Image = content
-            end
-        end)
+        end
 
         local InfoStack = New("Frame", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(76, 12),
             Size = UDim2.new(1, -86, 0, 50),
-            Parent = CardFrame,
+            Parent = AccountView,
         })
         New("UIListLayout", {
             Padding = UDim.new(0, 2),
@@ -4096,7 +4148,7 @@ do
         local DisplayNameLabel = New("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 14),
-            Text = LocalPlayer.DisplayName,
+            Text = Info.DisplayName,
             TextSize = 14,
             Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
@@ -4107,7 +4159,7 @@ do
         local UsernameLabel = New("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 11),
-            Text = "@" .. LocalPlayer.Name,
+            Text = Info.Username,
             TextSize = 11,
             Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
@@ -4116,12 +4168,12 @@ do
             Parent = InfoStack,
         })
 
-        local RoleText = Info.Role or "User"
+        local RoleText = Info.Role
         local RoleBadge = New("Frame", {
             AutomaticSize = Enum.AutomaticSize.XY,
             BackgroundColor3 = "AccentColor",
             BackgroundTransparency = 0.85,
-            Visible = Info.Role ~= false,
+            Visible = Info.Role ~= "",
             Parent = InfoStack,
         })
         table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 3), Parent = RoleBadge }))
@@ -4148,7 +4200,7 @@ do
             Parent = RoleBadge,
         })
 
-        local Divider = Library:MakeLine(CardFrame, {
+        local Divider = Library:MakeLine(AccountView, {
             Position = UDim2.fromOffset(10, 76),
             Size = UDim2.new(1, -20, 0, 1),
         })
@@ -4157,14 +4209,13 @@ do
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(12, 84),
             Size = UDim2.new(1, -24, 0, Info.Expiry and 38 or 24),
-            Parent = CardFrame,
+            Parent = AccountView,
         })
         
-        local KeyType = Info.KeyType or Info.Key or "Free"
         local StatKey = New("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.new(0.5, 0, 0, 12),
-            Text = "Key: " .. tostring(KeyType),
+            Text = "Key: " .. tostring(keyTypeVal),
             TextSize = 11,
             Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
@@ -4173,12 +4224,11 @@ do
             Parent = StatsGrid,
         })
 
-        local identifyexecutor = identifyexecutor or function() return "None" end
         local StatClient = New("TextLabel", {
             BackgroundTransparency = 1,
             Position = UDim2.fromScale(0.5, 0),
             Size = UDim2.new(0.5, 0, 0, 12),
-            Text = "Client: " .. identifyexecutor(),
+            Text = "Client: " .. tostring(detectClient),
             TextSize = 11,
             Font = Enum.Font.GothamMedium,
             TextColor3 = "FontColor",
@@ -4203,8 +4253,7 @@ do
             })
         end
 
-        local BaseY = Info.Expiry and 126 or 112
-        CardFrame.Size = UDim2.new(1, 0, 0, BaseY)
+
 
         local BottomDivider = Library:MakeLine(CardFrame, {
             Position = UDim2.fromOffset(10, BaseY),
@@ -4226,7 +4275,78 @@ do
             Parent = ButtonsHolder,
         })
 
+        Card.Tabs = {}
+
+        function Card:AddTab(TabInfo)
+            TabInfo = Library:Validate(TabInfo, {
+                Name = "",
+                Icon = ""
+            })
+
+            local TabContent = New("Frame", {
+                Name = TabInfo.Name .. "View",
+                Size = UDim2.new(1, 0, 0, BaseY),
+                BackgroundTransparency = 1,
+                Visible = false,
+                Parent = CardFrame,
+            })
+            
+            local TabList = New("UIListLayout", {
+                Padding = UDim.new(0, 6),
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Parent = TabContent,
+            })
+            
+            local TabPadding = New("UIPadding", {
+                PaddingLeft = UDim.new(0, 10),
+                PaddingRight = UDim.new(0, 10),
+                PaddingTop = UDim.new(0, 10),
+                PaddingBottom = UDim.new(0, 10),
+                Parent = TabContent,
+            })
+
+            local TabSubGroup = {
+                Container = TabContent,
+                Elements = {},
+                Resize = function() Groupbox:Resize() end,
+            }
+            for k, v in pairs(Funcs) do
+                if typeof(v) == "function" then
+                    TabSubGroup[k] = function(self, ...)
+                        return v(TabSubGroup, ...)
+                    end
+                end
+            end
+
+            Card:AddButton({
+                Name = TabInfo.Name,
+                Icon = TabInfo.Icon,
+                Callback = function()
+                    AccountView.Visible = false
+                    for _, t in ipairs(Card.Tabs) do
+                        t.Container.Visible = false
+                    end
+                    TabContent.Visible = true
+                end
+            })
+
+            table.insert(Card.Tabs, TabSubGroup)
+
+            return TabSubGroup
+        end
+
         Card.Buttons = {}
+
+        Card:AddButton({
+            Name = Info.AccountName or "Account",
+            Icon = Info.AccountIcon or "user",
+            Callback = function()
+                AccountView.Visible = true
+                for _, t in ipairs(Card.Tabs) do
+                    t.Container.Visible = false
+                end
+            end
+        })
 
         function Card:AddButton(BtnInfo)
             BtnInfo = Library:Validate(BtnInfo, {
@@ -4282,16 +4402,46 @@ do
                 Parent = btn,
             })
             
+            local isDefault = (#Card.Buttons == 0)
+            btn:SetAttribute("Active", isDefault)
+
+            if isDefault then
+                icon.ImageColor3 = Library.Scheme.AccentColor
+                icon.ImageTransparency = 0
+                lbl.TextColor3 = Library.Scheme.AccentColor
+                lbl.TextTransparency = 0
+            end
+
             btn.MouseEnter:Connect(function()
-                TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.AccentColor, ImageTransparency = 0 }):Play()
-                TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.AccentColor, TextTransparency = 0 }):Play()
+                if not btn:GetAttribute("Active") then
+                    TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.AccentColor, ImageTransparency = 0 }):Play()
+                    TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.AccentColor, TextTransparency = 0 }):Play()
+                end
             end)
             btn.MouseLeave:Connect(function()
-                TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.FontColor, ImageTransparency = 0.35 }):Play()
-                TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.FontColor, TextTransparency = 0.35 }):Play()
+                if not btn:GetAttribute("Active") then
+                    TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.FontColor, ImageTransparency = 0.35 }):Play()
+                    TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.FontColor, TextTransparency = 0.35 }):Play()
+                end
             end)
             
-            btn.MouseButton1Click:Connect(BtnInfo.Callback)
+            btn.MouseButton1Click:Connect(function()
+                for _, b in ipairs(Card.Buttons) do
+                    b:SetAttribute("Active", false)
+                    local bIcon = b:FindFirstChild("Icon")
+                    local bLbl = b:FindFirstChild("Label")
+                    if bIcon and bLbl then
+                        TweenService:Create(bIcon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.FontColor, ImageTransparency = 0.35 }):Play()
+                        TweenService:Create(bLbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.FontColor, TextTransparency = 0.35 }):Play()
+                    end
+                end
+
+                btn:SetAttribute("Active", true)
+                TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.AccentColor, ImageTransparency = 0 }):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.AccentColor, TextTransparency = 0 }):Play()
+
+                pcall(BtnInfo.Callback)
+            end)
 
             table.insert(Card.Buttons, btn)
 
