@@ -4978,8 +4978,10 @@ do
             Size = UDim2.new(1, 0, 0, 21),
             Text = Input.Value,
             TextEditable = not Input.Disabled,
-            TextScaled = true,
+            TextScaled = false,
+            TextSize = 13,
             TextXAlignment = Enum.TextXAlignment.Left,
+            ClipsDescendants = true,
             Parent = Holder,
         })
 
@@ -7252,17 +7254,6 @@ function Library:CreateWindow(WindowInfo)
             Parent = ScreenGui,
         })
         Library.MainFrame = MainFrame
-        MainFrame.ClipsDescendants = false
-
-        local Mascot = New("ImageLabel", {
-            Name = "Mascot",
-            Size = UDim2.fromOffset(56, 56),
-            Position = UDim2.new(0, 12, 0, -48),
-            BackgroundTransparency = 1,
-            Image = CustomImageManager.GetAsset("PopCatSmirkClosed"),
-            ZIndex = 10,
-            Parent = MainFrame,
-        })
         table.insert(
             Library.Corners,
             New("UICorner", {
