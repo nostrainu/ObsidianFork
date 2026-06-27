@@ -4189,7 +4189,6 @@ do
 
         local StatExpiry
         if Info.Expiry then
-            CardFrame.Size = UDim2.new(1, 0, 0, 130)
             StatExpiry = New("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.fromOffset(0, 16),
@@ -4203,6 +4202,110 @@ do
                 Parent = StatsGrid,
             })
         end
+
+        local BaseY = Info.Expiry and 126 or 112
+        CardFrame.Size = UDim2.new(1, 0, 0, BaseY + 48)
+
+        local BottomDivider = Library:MakeLine(CardFrame, {
+            Position = UDim2.fromOffset(10, BaseY),
+            Size = UDim2.new(1, -20, 0, 1),
+        })
+
+        local ButtonsHolder = New("Frame", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(0, BaseY + 1),
+            Size = UDim2.new(1, 0, 0, 47),
+            Parent = CardFrame,
+        })
+
+        local function createButton(name, iconName, xOffsetPct, callback)
+            local btn = New("TextButton", {
+                Name = name,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(xOffsetPct, 0, 0, 0),
+                Size = UDim2.new(0.333, 0, 1, 0),
+                Text = "",
+                Parent = ButtonsHolder,
+            })
+            
+            local icon = New("ImageLabel", {
+                Name = "Icon",
+                AnchorPoint = Vector2.new(0.5, 0),
+                Position = UDim2.new(0.5, 0, 0, 8),
+                Size = UDim2.fromOffset(16, 16),
+                BackgroundTransparency = 1,
+                ImageColor3 = "FontColor",
+                ImageTransparency = 0.35,
+                Parent = btn,
+            })
+            
+            local iconData = Library:GetCustomIcon(iconName)
+            if iconData then
+                icon.Image = iconData.Url
+                icon.ImageRectOffset = iconData.ImageRectOffset
+                icon.ImageRectSize = iconData.ImageRectSize
+            end
+            
+            local lbl = New("TextLabel", {
+                Name = "Label",
+                Size = UDim2.new(1, 0, 0, 12),
+                Position = UDim2.new(0, 0, 0, 26),
+                BackgroundTransparency = 1,
+                Text = name,
+                TextSize = 10,
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = "FontColor",
+                TextTransparency = 0.35,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                Parent = btn,
+            })
+            
+            btn.MouseEnter:Connect(function()
+                TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.AccentColor, ImageTransparency = 0 }):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.AccentColor, TextTransparency = 0 }):Play()
+            end)
+            btn.MouseLeave:Connect(function()
+                TweenService:Create(icon, TweenInfo.new(0.15), { ImageColor3 = Library.Scheme.FontColor, ImageTransparency = 0.35 }):Play()
+                TweenService:Create(lbl, TweenInfo.new(0.15), { TextColor3 = Library.Scheme.FontColor, TextTransparency = 0.35 }):Play()
+            end)
+            
+            btn.MouseButton1Click:Connect(callback)
+        end
+
+        createButton("Account", "user", 0, function()
+            local success, err = pcall(function()
+                setclipboard(tostring(LocalPlayer.UserId))
+            end)
+            Library:Notify({
+                Title = "Account Profile",
+                Text = success and "Roblox User ID copied to clipboard!" or ("User ID: " .. tostring(LocalPlayer.UserId)),
+                Duration = 4
+            })
+        end)
+
+        createButton("Discord", "message-square", 0.333, function()
+            local discordLink = Info.Discord or "https://discord.gg/bobcat"
+            local success, err = pcall(function()
+                setclipboard(discordLink)
+            end)
+            Library:Notify({
+                Title = "Discord Link",
+                Text = success and "Discord link copied to clipboard!" or ("Link: " .. discordLink),
+                Duration = 4
+            })
+        end)
+
+        createButton("Shop", "shopping-cart", 0.666, function()
+            local shopLink = Info.Shop or "https://bobcat-hub.mysellix.io"
+            local success, err = pcall(function()
+                setclipboard(shopLink)
+            end)
+            Library:Notify({
+                Title = "Shop Link",
+                Text = success and "Shop link copied to clipboard!" or ("Link: " .. shopLink),
+                Duration = 4
+            })
+        end)
 
         function Card:SetVisible(Visible)
             Card.Visible = Visible
