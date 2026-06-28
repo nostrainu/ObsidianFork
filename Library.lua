@@ -4724,6 +4724,7 @@ do
             OnToggle = function() end,
             OnCopyID = function() end,
             OnDelete = function() end,
+            GetFarmingStatus = function(alt, isOnline) return false end,
             Visible = true,
         })
 
@@ -4737,25 +4738,6 @@ do
             Type = "AltList",
         }
 
-        local function getAltIcon(state)
-            if state == "controlling" then
-                local icon = Library:GetIcon("user-cog")
-                    or Library:GetIcon("settings")
-                    or Library:GetIcon("sliders")
-                return icon or Library:GetCustomIcon("settings")
-            elseif state == "online" then
-                local icon = Library:GetIcon("user-check")
-                    or Library:GetIcon("check")
-                    or Library:GetIcon("smile")
-                return icon or Library:GetCustomIcon("check")
-            else
-                local icon = Library:GetIcon("user-x")
-                    or Library:GetIcon("x")
-                    or Library:GetIcon("frown")
-                return icon or Library:GetCustomIcon("x")
-            end
-        end
-
         local function updateCardVisual(altName)
             local card = AltList.Cards[altName]
             if not card then return end
@@ -4764,41 +4746,31 @@ do
             local playerInGame = Players:FindFirstChild(card.AltInfo.Name)
             local isOnline = playerInGame ~= nil
             
+            local isFarming = false
+            if isOnline and Info.GetFarmingStatus then
+                local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
+                if success then
+                    isFarming = res
+                end
+            end
+            
             if isSelected then
                 card.Frame.BackgroundTransparency = 0.95
                 card.Frame.BackgroundColor3 = Library.Scheme.AccentColor
                 card.TextLabel.TextColor3 = Library.Scheme.AccentColor
                 card.TextLabel.Text = card.AltInfo.Name .. " (Controlling)"
-                
-                local iconData = getAltIcon("controlling")
-                if iconData then
-                    card.Icon.Image = iconData.Url
-                    card.Icon.ImageRectOffset = iconData.ImageRectOffset
-                    card.Icon.ImageRectSize = iconData.IconRectSize
-                    card.Icon.ImageColor3 = Library.Scheme.AccentColor
-                end
             else
                 card.Frame.BackgroundTransparency = 1
-                card.TextLabel.TextColor3 = Library.Scheme.FontColor
                 
-                if isOnline then
+                if isFarming then
+                    card.TextLabel.Text = card.AltInfo.Name .. " (Farming)"
+                    card.TextLabel.TextColor3 = Color3.fromRGB(240, 200, 0)
+                elseif isOnline then
                     card.TextLabel.Text = card.AltInfo.Name .. " (Online)"
-                    local iconData = getAltIcon("online")
-                    if iconData then
-                        card.Icon.Image = iconData.Url
-                        card.Icon.ImageRectOffset = iconData.ImageRectOffset
-                        card.Icon.ImageRectSize = iconData.IconRectSize
-                        card.Icon.ImageColor3 = Color3.fromRGB(0, 200, 100)
-                    end
+                    card.TextLabel.TextColor3 = Color3.fromRGB(0, 200, 100)
                 else
                     card.TextLabel.Text = card.AltInfo.Name .. " (Offline)"
-                    local iconData = getAltIcon("offline")
-                    if iconData then
-                        card.Icon.Image = iconData.Url
-                        card.Icon.ImageRectOffset = iconData.ImageRectOffset
-                        card.Icon.ImageRectSize = iconData.IconRectSize
-                        card.Icon.ImageColor3 = Color3.fromRGB(150, 150, 150)
-                    end
+                    card.TextLabel.TextColor3 = Color3.fromRGB(240, 70, 70)
                 end
             end
         end
@@ -4816,19 +4788,11 @@ do
                 Parent = cardFrame,
             })
             
-            local icon = New("ImageLabel", {
-                Name = "Icon",
-                BackgroundTransparency = 1,
-                Position = UDim2.fromOffset(6, 4),
-                Size = UDim2.fromOffset(20, 20),
-                Parent = cardFrame,
-            })
-            
             local textLabel = New("TextLabel", {
                 Name = "Label",
                 BackgroundTransparency = 1,
-                Position = UDim2.fromOffset(32, 0),
-                Size = UDim2.new(1, -98, 1, 0),
+                Position = UDim2.fromOffset(8, 0),
+                Size = UDim2.new(1, -70, 1, 0),
                 Font = Enum.Font.GothamMedium,
                 TextSize = 12,
                 TextColor3 = "FontColor",
@@ -4901,7 +4865,6 @@ do
             
             AltList.Cards[alt.Name] = {
                 Frame = cardFrame,
-                Icon = icon,
                 TextLabel = textLabel,
                 AltInfo = alt
             }
@@ -4935,6 +4898,21 @@ do
         for _, alt in ipairs(AltList.Accounts) do
             AltList:AddAccount(alt)
         end
+
+        task.spawn(function()
+            while task.wait(3) do
+                local hasActiveCards = false
+                for altName, card in pairs(AltList.Cards) do
+                    if card.Frame and card.Frame.Parent then
+                        hasActiveCards = true
+                        pcall(updateCardVisual, altName)
+                    end
+                end
+                if not hasActiveCards then
+                    break
+                end
+            end
+        end)
 
         if Idx then
             Library.Options[Idx] = AltList
@@ -8660,8 +8638,9 @@ function Library:CreateWindow(WindowInfo)
                 AutomaticCanvasSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
                 CanvasSize = UDim2.fromScale(0, 0),
-                ScrollBarImageTransparency = 1,
-                ScrollBarThickness = 0,
+                ScrollBarImageColor3 = "OutlineColor",
+                ScrollBarImageTransparency = 0.8,
+                ScrollBarThickness = 3,
                 Size = UDim2.new(1, 0, 1, 0),
                 Parent = TabContainer,
             })
