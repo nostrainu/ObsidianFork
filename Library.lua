@@ -4372,7 +4372,9 @@ do
                         t.Container.Visible = false
                     end
                     TabContent.Visible = true
-                    Card:UpdateHeight()
+                    task.defer(function()
+                        Card:UpdateHeight()
+                    end)
                 end
             })
 
@@ -4493,7 +4495,9 @@ do
                 for _, t in ipairs(Card.Tabs) do
                     t.Container.Visible = false
                 end
-                Card:UpdateHeight()
+                task.defer(function()
+                    Card:UpdateHeight()
+                end)
             end
         })
 
@@ -4714,6 +4718,7 @@ do
             SelectedAlts = {},
             OnToggle = function() end,
             OnCopyID = function() end,
+            OnDelete = function() end,
             Visible = true,
         })
 
@@ -4726,6 +4731,25 @@ do
             Cards = {},
             Type = "AltList",
         }
+
+        local function getAltIcon(state)
+            if state == "controlling" then
+                local icon = Library:GetIcon("user-round-cog")
+                    or Library:GetIcon("user-cog")
+                    or Library:GetIcon("settings")
+                return icon or Library:GetCustomIcon("user-cog")
+            elseif state == "online" then
+                local icon = Library:GetIcon("user-round-check")
+                    or Library:GetIcon("user-check")
+                    or Library:GetIcon("check")
+                return icon or Library:GetCustomIcon("user-check")
+            else
+                local icon = Library:GetIcon("user-round-x")
+                    or Library:GetIcon("user-x")
+                    or Library:GetIcon("x")
+                return icon or Library:GetCustomIcon("user-x")
+            end
+        end
 
         local function updateCardVisual(altName)
             local card = AltList.Cards[altName]
@@ -4741,7 +4765,7 @@ do
                 card.TextLabel.TextColor3 = Library.Scheme.AccentColor
                 card.TextLabel.Text = card.AltInfo.Name .. " (Controlling)"
                 
-                local iconData = Library:GetCustomIcon("user-cog")
+                local iconData = getAltIcon("controlling")
                 if iconData then
                     card.Icon.Image = iconData.Url
                     card.Icon.ImageRectOffset = iconData.ImageRectOffset
@@ -4754,7 +4778,7 @@ do
                 
                 if isOnline then
                     card.TextLabel.Text = card.AltInfo.Name .. " (Online)"
-                    local iconData = Library:GetCustomIcon("user-round-check")
+                    local iconData = getAltIcon("online")
                     if iconData then
                         card.Icon.Image = iconData.Url
                         card.Icon.ImageRectOffset = iconData.ImageRectOffset
@@ -4763,7 +4787,7 @@ do
                     end
                 else
                     card.TextLabel.Text = card.AltInfo.Name .. " (Offline)"
-                    local iconData = Library:GetCustomIcon("user-round-x")
+                    local iconData = getAltIcon("offline")
                     if iconData then
                         card.Icon.Image = iconData.Url
                         card.Icon.ImageRectOffset = iconData.ImageRectOffset
@@ -4799,7 +4823,7 @@ do
                 Name = "Label",
                 BackgroundTransparency = 1,
                 Position = UDim2.fromOffset(32, 0),
-                Size = UDim2.new(1, -70, 1, 0),
+                Size = UDim2.new(1, -98, 1, 0),
                 Font = Enum.Font.GothamMedium,
                 TextSize = 12,
                 TextColor3 = "FontColor",
@@ -4811,9 +4835,32 @@ do
             local toggleBtn = New("TextButton", {
                 Name = "ToggleBtn",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, -36, 1, 0),
+                Size = UDim2.new(1, -64, 1, 0),
                 Text = "",
                 Parent = cardFrame,
+            })
+            
+            local deleteBtn = New("TextButton", {
+                Name = "DeleteBtn",
+                BackgroundColor3 = "MainColor",
+                Position = UDim2.new(1, -58, 0, 4),
+                Size = UDim2.fromOffset(24, 20),
+                Text = "X",
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = Library.Scheme.RedColor or Color3.fromRGB(240, 70, 70),
+                Parent = cardFrame,
+            })
+            
+            local deleteCorner = New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = deleteBtn,
+            })
+            
+            local deleteStroke = New("UIStroke", {
+                Color = "OutlineColor",
+                Thickness = 1,
+                Parent = deleteBtn,
             })
             
             local copyBtn = New("TextButton", {
@@ -4840,7 +4887,10 @@ do
             })
             
             table.insert(Library.Corners, cardCorner)
+            table.insert(Library.Corners, deleteCorner)
             table.insert(Library.Corners, copyCorner)
+            Library:AddToRegistry(deleteBtn, { BackgroundColor3 = "MainColor" })
+            Library:AddToRegistry(deleteStroke, { Color = "OutlineColor" })
             Library:AddToRegistry(copyBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
             Library:AddToRegistry(copyStroke, { Color = "OutlineColor" })
             
@@ -4857,12 +4907,26 @@ do
                 pcall(Info.OnToggle, alt, AltList.SelectedAlts[alt.Name])
             end)
             
+            deleteBtn.MouseButton1Click:Connect(function()
+                pcall(Info.OnDelete, alt)
+                cardFrame:Destroy()
+                AltList.Cards[alt.Name] = nil
+                AltList.SelectedAlts[alt.Name] = nil
+                task.defer(function()
+                    Card:UpdateHeight()
+                    Groupbox:Resize()
+                end)
+            end)
+            
             copyBtn.MouseButton1Click:Connect(function()
                 pcall(Info.OnCopyID, alt)
             end)
             
             updateCardVisual(alt.Name)
-            Groupbox:Resize()
+            task.defer(function()
+                Card:UpdateHeight()
+                Groupbox:Resize()
+            end)
         end
 
         for _, alt in ipairs(AltList.Accounts) do
