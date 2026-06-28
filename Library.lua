@@ -12760,6 +12760,104 @@ function WidgetClass:Destroy()
     pcall(function() self.ScreenGui:Destroy() end)
 end
 
+function Library:Prompt(Info)
+    Info = Info or {}
+    local title = Info.Title or "Notification"
+    local desc = Info.Description or ""
+    local buttons = Info.Buttons or {
+        {
+            Text = "OK",
+            Color = Color3.fromRGB(0, 180, 90),
+            Callback = function() end
+        }
+    }
+    
+    local LocalPlayer = game:GetService("Players").LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "LibraryPrompt"
+    screenGui.ResetOnSpawn = false
+    
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+    if playerGui then
+        screenGui.Parent = playerGui
+    else
+        screenGui.Parent = game:GetService("CoreGui")
+    end
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 340, 0, 180)
+    frame.Position = UDim2.new(0.5, -170, 0.5, -90)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 70)
+    stroke.Thickness = 1
+    stroke.Parent = frame
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -20, 0, 30)
+    titleLabel.Position = UDim2.new(0, 10, 0, 12)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    titleLabel.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -24, 0, 65)
+    label.Position = UDim2.new(0, 12, 0, 45)
+    label.BackgroundTransparency = 1
+    label.Text = desc
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 12
+    label.TextWrapped = true
+    label.TextYAlignment = Enum.TextYAlignment.Top
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.Parent = frame
+    
+    local buttonCount = #buttons
+    local buttonHeight = 32
+    local buttonPadding = 12
+    local totalWidth = 340 - 24
+    local availableWidth = totalWidth - ((buttonCount - 1) * buttonPadding)
+    local buttonWidth = math.floor(availableWidth / buttonCount)
+    
+    for i, btnInfo in ipairs(buttons) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
+        
+        local xPos = 12 + (i - 1) * (buttonWidth + buttonPadding)
+        btn.Position = UDim2.new(0, xPos, 1, -45)
+        
+        btn.BackgroundColor3 = btnInfo.Color or Color3.fromRGB(50, 50, 60)
+        btn.Text = btnInfo.Text or "Button"
+        btn.TextColor3 = btnInfo.TextColor or Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        btn.Parent = frame
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            screenGui:Destroy()
+            if btnInfo.Callback then
+                pcall(btnInfo.Callback)
+            end
+        end)
+    end
+end
+
 print("bobcat")
 getgenv().Library = Library
 return Library
