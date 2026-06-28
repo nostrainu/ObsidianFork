@@ -1188,9 +1188,14 @@ function Library:GetIcon(IconName: string)
     end
 
     local Success, Icon = pcall(Icons.GetAsset, IconName)
-    if not Success then
+    if not Success or typeof(Icon) ~= "table" then
         return
     end
+    
+    if typeof(Icon.ImageRectOffset) ~= "Vector2" or typeof(Icon.ImageRectSize) ~= "Vector2" then
+        return
+    end
+    
     return Icon
 end
 
@@ -4734,20 +4739,20 @@ do
 
         local function getAltIcon(state)
             if state == "controlling" then
-                local icon = Library:GetIcon("user-round-cog")
-                    or Library:GetIcon("user-cog")
+                local icon = Library:GetIcon("user-cog")
                     or Library:GetIcon("settings")
-                return icon or Library:GetCustomIcon("user-cog")
+                    or Library:GetIcon("sliders")
+                return icon or Library:GetCustomIcon("settings")
             elseif state == "online" then
-                local icon = Library:GetIcon("user-round-check")
-                    or Library:GetIcon("user-check")
+                local icon = Library:GetIcon("user-check")
                     or Library:GetIcon("check")
-                return icon or Library:GetCustomIcon("user-check")
+                    or Library:GetIcon("smile")
+                return icon or Library:GetCustomIcon("check")
             else
-                local icon = Library:GetIcon("user-round-x")
-                    or Library:GetIcon("user-x")
+                local icon = Library:GetIcon("user-x")
                     or Library:GetIcon("x")
-                return icon or Library:GetCustomIcon("user-x")
+                    or Library:GetIcon("frown")
+                return icon or Library:GetCustomIcon("x")
             end
         end
 
@@ -4913,7 +4918,6 @@ do
                 AltList.Cards[alt.Name] = nil
                 AltList.SelectedAlts[alt.Name] = nil
                 task.defer(function()
-                    Card:UpdateHeight()
                     Groupbox:Resize()
                 end)
             end)
@@ -4924,7 +4928,6 @@ do
             
             updateCardVisual(alt.Name)
             task.defer(function()
-                Card:UpdateHeight()
                 Groupbox:Resize()
             end)
         end
@@ -8799,74 +8802,112 @@ function Library:CreateWindow(WindowInfo)
             return Tab.LayoutOrderCount
         end
 
-        function Tab:GetSideContainer(Side)
-            if Side == 3 then
+        function Tab:GetSideContainer(Side, Full)
+            if Side == 3 and Full then
                 Tab.CurrentRow = nil
                 return TabMiddle
-            else
-                if not Tab.CurrentRow then
-                    local RowFrame = New("Frame", {
-                        AutomaticSize = Enum.AutomaticSize.Y,
-                        BackgroundTransparency = 1,
-                        LayoutOrder = Tab:GetNextLayoutOrder(),
-                        Size = UDim2.new(1, 0, 0, 0),
-                        Parent = TabMiddle,
-                    })
-                    
-                    local RowLayout = New("UIListLayout", {
-                        FillDirection = Enum.FillDirection.Horizontal,
-                        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-                        SortOrder = Enum.SortOrder.LayoutOrder,
-                        Parent = RowFrame,
-                    })
+            end
 
-                    local LeftColumn = New("Frame", {
-                        AutomaticSize = Enum.AutomaticSize.Y,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0.5, -3, 0, 0),
-                        Parent = RowFrame,
-                    })
-                    New("UIListLayout", {
-                        Padding = UDim.new(0, 6),
-                        Parent = LeftColumn,
-                    })
-                    New("UIPadding", {
-                        PaddingBottom = UDim.new(0, 4),
-                        PaddingTop = UDim.new(0, 4),
-                        Parent = LeftColumn,
-                    })
+            if not Tab.CurrentRow then
+                local RowFrame = New("Frame", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    LayoutOrder = Tab:GetNextLayoutOrder(),
+                    Size = UDim2.new(1, 0, 0, 0),
+                    Parent = TabMiddle,
+                })
+                
+                local RowLayout = New("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    Parent = RowFrame,
+                })
 
-                    -- Spacer
-                    New("Frame", {
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0, 6, 0, 0),
-                        Parent = RowFrame,
-                    })
+                local LeftColumn = New("Frame", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0.5, -3, 0, 0),
+                    LayoutOrder = 1,
+                    Parent = RowFrame,
+                })
+                New("UIListLayout", {
+                    Padding = UDim.new(0, 6),
+                    Parent = LeftColumn,
+                })
+                New("UIPadding", {
+                    PaddingBottom = UDim.new(0, 4),
+                    PaddingTop = UDim.new(0, 4),
+                    Parent = LeftColumn,
+                })
 
-                    local RightColumn = New("Frame", {
-                        AutomaticSize = Enum.AutomaticSize.Y,
-                        BackgroundTransparency = 1,
-                        Size = UDim2.new(0.5, -3, 0, 0),
-                        Parent = RowFrame,
-                    })
-                    New("UIListLayout", {
-                        Padding = UDim.new(0, 6),
-                        Parent = RightColumn,
-                    })
-                    New("UIPadding", {
-                        PaddingBottom = UDim.new(0, 4),
-                        PaddingTop = UDim.new(0, 4),
-                        Parent = RightColumn,
-                    })
+                local Spacer1 = New("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 6, 0, 0),
+                    LayoutOrder = 2,
+                    Parent = RowFrame,
+                })
 
-                    Tab.CurrentRow = {
-                        Frame = RowFrame,
+                local RightColumn = New("Frame", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0.5, -3, 0, 0),
+                    LayoutOrder = 5,
+                    Parent = RowFrame,
+                })
+                New("UIListLayout", {
+                    Padding = UDim.new(0, 6),
+                    Parent = RightColumn,
+                })
+                New("UIPadding", {
+                    PaddingBottom = UDim.new(0, 4),
+                    PaddingTop = UDim.new(0, 4),
+                    Parent = RightColumn,
+                })
+
+                Tab.CurrentRow = {
+                    Frame = RowFrame,
+                    Spacer1 = Spacer1,
+                    Columns = {
                         [1] = LeftColumn,
                         [2] = RightColumn,
                     }
-                end
-                return Tab.CurrentRow[Side]
+                }
             end
+
+            if Side == 3 and not Tab.CurrentRow.Columns[3] then
+                local MiddleColumn = New("Frame", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0.333, -4, 0, 0),
+                    LayoutOrder = 3,
+                    Parent = Tab.CurrentRow.Frame,
+                })
+                New("UIListLayout", {
+                    Padding = UDim.new(0, 6),
+                    Parent = MiddleColumn,
+                })
+                New("UIPadding", {
+                    PaddingBottom = UDim.new(0, 4),
+                    PaddingTop = UDim.new(0, 4),
+                    Parent = MiddleColumn,
+                })
+
+                local Spacer2 = New("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 6, 0, 0),
+                    LayoutOrder = 4,
+                    Parent = Tab.CurrentRow.Frame,
+                })
+
+                Tab.CurrentRow.Spacer2 = Spacer2
+                Tab.CurrentRow.Columns[3] = MiddleColumn
+
+                Tab.CurrentRow.Columns[1].Size = UDim2.new(0.333, -4, 0, 0)
+                Tab.CurrentRow.Columns[2].Size = UDim2.new(0.333, -4, 0, 0)
+            end
+
+            return Tab.CurrentRow.Columns[Side]
         end
 
         function Tab:UpdateWarningBox(Info)
@@ -8975,7 +9016,7 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:AddGroupbox(Info)
-            local ParentContainer = Tab:GetSideContainer(Info.Side)
+            local ParentContainer = Tab:GetSideContainer(Info.Side, Info.Full)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
@@ -9260,7 +9301,7 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:AddTabbox(Info)
-            local ParentContainer = Tab:GetSideContainer(Info.Side)
+            local ParentContainer = Tab:GetSideContainer(Info.Side, Info.Full)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
