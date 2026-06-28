@@ -4317,6 +4317,7 @@ do
             local holderHeight = rows * ButtonRowHeight
             ButtonsHolder.Position = UDim2.fromOffset(0, activeHeight + 1)
             CardFrame.Size = UDim2.new(1, 0, 0, activeHeight + holderHeight + 1)
+            Groupbox:Resize()
         end
 
         function Card:AddTab(TabInfo)
@@ -8784,8 +8785,8 @@ function Library:CreateWindow(WindowInfo)
             return Tab.LayoutOrderCount
         end
 
-        function Tab:GetSideContainer(Side, Full)
-            if Side == 3 and Full then
+        function Tab:GetSideContainer(Side)
+            if Side == 3 then
                 Tab.CurrentRow = nil
                 return TabMiddle
             end
@@ -9002,7 +9003,7 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:AddGroupbox(Info)
-            local ParentContainer = Tab:GetSideContainer(Info.Side, Info.Full)
+            local ParentContainer = Tab:GetSideContainer(Info.Side)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
@@ -9287,7 +9288,7 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:AddTabbox(Info)
-            local ParentContainer = Tab:GetSideContainer(Info.Side, Info.Full)
+            local ParentContainer = Tab:GetSideContainer(Info.Side)
             local BoxHolder = New("Frame", {
                 AutomaticSize = Enum.AutomaticSize.Y,
                 BackgroundTransparency = 1,
