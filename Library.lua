@@ -568,6 +568,17 @@ local Templates = {
         AccountIcon = "user",
         Expiry = nil,
     },
+    GameInfo = {
+        Visible = true,
+        PlaceId = nil,
+        PlaceVersion = nil,
+        JobId = nil,
+        ShowIcon = true,
+        ShowPlaceVersion = true,
+        ShowJobId = true,
+        ShowPlayTime = true,
+        PlayTimePrefix = "Play Time: ",
+    },
 }
 
 local Places = {
@@ -4494,6 +4505,165 @@ do
         end
 
         return Card
+    end
+
+    function Funcs:AddGameInfo(Idx, Info)
+        if typeof(Idx) == "table" then
+            Info = Idx
+            Idx = nil
+        end
+        Info = Library:Validate(Info, Templates.GameInfo)
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local GameInfo = {
+            Visible = Info.Visible,
+            Type = "GameInfo"
+        }
+
+        local PlaceId = Info.PlaceId or game.PlaceId
+        local PlaceVersion = Info.PlaceVersion or game.PlaceVersion
+        local JobId = Info.JobId or game.JobId
+
+        local Holder = New("Frame", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 70),
+            Visible = GameInfo.Visible,
+            Parent = Container,
+        })
+
+        local IconOffset = 0
+        local IconImage
+        if Info.ShowIcon then
+            IconImage = New("ImageLabel", {
+                Name = "GameIcon",
+                Size = UDim2.fromOffset(60, 60),
+                Position = UDim2.fromOffset(0, 5),
+                BackgroundTransparency = 0.5,
+                BackgroundColor3 = "BackgroundColor",
+                Image = "rbxthumb://type=GameIcon&id=" .. tostring(PlaceId) .. "&w=150&h=150",
+                Parent = Holder,
+            })
+            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = IconImage }))
+            Library:AddToRegistry(IconImage, { BackgroundColor3 = "BackgroundColor" })
+            IconOffset = 70
+        end
+
+        local YOffset = 2
+        
+        local GameNameLabel = New("TextLabel", {
+            Name = "GameName",
+            Position = UDim2.fromOffset(IconOffset, YOffset),
+            Size = UDim2.new(1, -IconOffset, 0, 16),
+            BackgroundTransparency = 1,
+            Text = "Loading...",
+            TextSize = 12,
+            Font = Enum.Font.GothamBold,
+            TextColor3 = "FontColor",
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTruncate = Enum.TextTruncate.AtEnd,
+            Parent = Holder,
+        })
+        Library:AddToRegistry(GameNameLabel, { TextColor3 = "FontColor" })
+        YOffset = YOffset + 17
+
+        task.spawn(function()
+            pcall(function()
+                local productInfo = game:GetService("MarketplaceService"):GetProductInfo(PlaceId)
+                GameNameLabel.Text = productInfo.Name
+            end)
+        end)
+
+        local PlaceVersionLabel
+        if Info.ShowPlaceVersion then
+            PlaceVersionLabel = New("TextLabel", {
+                Name = "PlaceVersion",
+                Position = UDim2.fromOffset(IconOffset, YOffset),
+                Size = UDim2.new(1, -IconOffset, 0, 14),
+                BackgroundTransparency = 1,
+                Text = "Version: " .. tostring(PlaceVersion),
+                TextSize = 10,
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = "FontColor",
+                TextTransparency = 0.35,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = Holder,
+            })
+            Library:AddToRegistry(PlaceVersionLabel, { TextColor3 = "FontColor" })
+            YOffset = YOffset + 16
+        end
+
+        local JobIdLabel
+        if Info.ShowJobId then
+            local JobIdText = tostring(JobId)
+            if #JobIdText > 14 then
+                JobIdText = string.sub(JobIdText, 1, 14) .. "..."
+            end
+            JobIdLabel = New("TextLabel", {
+                Name = "JobId",
+                Position = UDim2.fromOffset(IconOffset, YOffset),
+                Size = UDim2.new(1, -IconOffset, 0, 14),
+                BackgroundTransparency = 1,
+                Text = "JobId: " .. JobIdText,
+                TextSize = 10,
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = "FontColor",
+                TextTransparency = 0.35,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = Holder,
+            })
+            Library:AddToRegistry(JobIdLabel, { TextColor3 = "FontColor" })
+            YOffset = YOffset + 16
+        end
+
+        local PlayTimeLabel
+        if Info.ShowPlayTime then
+            local startTime = os.clock()
+            PlayTimeLabel = New("TextLabel", {
+                Name = "PlayTime",
+                Position = UDim2.fromOffset(IconOffset, YOffset),
+                Size = UDim2.new(1, -IconOffset, 0, 14),
+                BackgroundTransparency = 1,
+                Text = Info.PlayTimePrefix .. "00:00:00",
+                TextSize = 10,
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = "FontColor",
+                TextTransparency = 0.35,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = Holder,
+            })
+            Library:AddToRegistry(PlayTimeLabel, { TextColor3 = "FontColor" })
+            
+            task.spawn(function()
+                while PlayTimeLabel and PlayTimeLabel.Parent do
+                    task.wait(1)
+                    local elapsed = os.clock() - startTime
+                    local h = math.floor(elapsed / 3600)
+                    local m = math.floor((elapsed % 3600) / 60)
+                    local s = math.floor(elapsed % 60)
+                    PlayTimeLabel.Text = string.format("%s%02d:%02d:%02d", Info.PlayTimePrefix, h, m, s)
+                end
+            end)
+            YOffset = YOffset + 16
+        end
+
+        Holder.Size = UDim2.new(1, 0, 0, math.max(70, YOffset + 5))
+
+        table.insert(Groupbox.Elements, GameInfo)
+        Groupbox:Resize()
+
+        if Idx then
+            Library.Options[Idx] = GameInfo
+        end
+
+        function GameInfo:SetVisible(State)
+            Holder.Visible = State
+            Groupbox:Resize()
+        end
+
+        return GameInfo
     end
 
     function Funcs:AddMacroStatus(Idx, Info)
