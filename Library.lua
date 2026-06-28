@@ -571,6 +571,7 @@ local Templates = {
     GameInfo = {
         Visible = true,
         PlaceId = nil,
+        UniverseId = nil,
         PlaceVersion = nil,
         JobId = nil,
         ShowIcon = true,
@@ -4523,6 +4524,7 @@ do
         }
 
         local PlaceId = Info.PlaceId or game.PlaceId
+        local UniverseId = Info.UniverseId or game.GameId
         local PlaceVersion = Info.PlaceVersion or game.PlaceVersion
         local JobId = Info.JobId or game.JobId
 
@@ -4534,21 +4536,22 @@ do
             Parent = Container,
         })
 
+        local IconSize = 75
         local IconOffset = 0
         local IconImage
         if Info.ShowIcon then
             IconImage = New("ImageLabel", {
                 Name = "GameIcon",
-                Size = UDim2.fromOffset(60, 60),
-                Position = UDim2.fromOffset(0, 5),
+                Size = UDim2.fromOffset(IconSize, IconSize),
+                Position = UDim2.fromOffset(0, 2),
                 BackgroundTransparency = 0.5,
                 BackgroundColor3 = "BackgroundColor",
-                Image = "rbxthumb://type=GameIcon&id=" .. tostring(PlaceId) .. "&w=150&h=150",
+                Image = "rbxthumb://type=GameIcon&id=" .. tostring(UniverseId) .. "&w=150&h=150",
                 Parent = Holder,
             })
-            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = IconImage }))
+            table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 10), Parent = IconImage }))
             Library:AddToRegistry(IconImage, { BackgroundColor3 = "BackgroundColor" })
-            IconOffset = 70
+            IconOffset = IconSize + 12
         end
 
         local YOffset = 2
@@ -4556,10 +4559,10 @@ do
         local GameNameLabel = New("TextLabel", {
             Name = "GameName",
             Position = UDim2.fromOffset(IconOffset, YOffset),
-            Size = UDim2.new(1, -IconOffset, 0, 16),
+            Size = UDim2.new(1, -IconOffset, 0, 18),
             BackgroundTransparency = 1,
             Text = "Loading...",
-            TextSize = 12,
+            TextSize = 14,
             Font = Enum.Font.GothamBold,
             TextColor3 = "FontColor",
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -4567,7 +4570,7 @@ do
             Parent = Holder,
         })
         Library:AddToRegistry(GameNameLabel, { TextColor3 = "FontColor" })
-        YOffset = YOffset + 17
+        YOffset = YOffset + 20
 
         task.spawn(function()
             pcall(function()
@@ -4584,7 +4587,7 @@ do
                 Size = UDim2.new(1, -IconOffset, 0, 14),
                 BackgroundTransparency = 1,
                 Text = "Version: " .. tostring(PlaceVersion),
-                TextSize = 10,
+                TextSize = 11,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = "FontColor",
                 TextTransparency = 0.35,
@@ -4592,7 +4595,7 @@ do
                 Parent = Holder,
             })
             Library:AddToRegistry(PlaceVersionLabel, { TextColor3 = "FontColor" })
-            YOffset = YOffset + 16
+            YOffset = YOffset + 17
         end
 
         local JobIdLabel
@@ -4607,7 +4610,7 @@ do
                 Size = UDim2.new(1, -IconOffset, 0, 14),
                 BackgroundTransparency = 1,
                 Text = "JobId: " .. JobIdText,
-                TextSize = 10,
+                TextSize = 11,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = "FontColor",
                 TextTransparency = 0.35,
@@ -4615,7 +4618,7 @@ do
                 Parent = Holder,
             })
             Library:AddToRegistry(JobIdLabel, { TextColor3 = "FontColor" })
-            YOffset = YOffset + 16
+            YOffset = YOffset + 17
         end
 
         local PlayTimeLabel
@@ -4627,7 +4630,7 @@ do
                 Size = UDim2.new(1, -IconOffset, 0, 14),
                 BackgroundTransparency = 1,
                 Text = Info.PlayTimePrefix .. "00:00:00",
-                TextSize = 10,
+                TextSize = 11,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = "FontColor",
                 TextTransparency = 0.35,
@@ -4646,10 +4649,10 @@ do
                     PlayTimeLabel.Text = string.format("%s%02d:%02d:%02d", Info.PlayTimePrefix, h, m, s)
                 end
             end)
-            YOffset = YOffset + 16
+            YOffset = YOffset + 17
         end
 
-        Holder.Size = UDim2.new(1, 0, 0, math.max(70, YOffset + 5))
+        Holder.Size = UDim2.new(1, 0, 0, math.max(IconSize + 4, YOffset + 4))
 
         table.insert(Groupbox.Elements, GameInfo)
         Groupbox:Resize()
