@@ -4290,6 +4290,30 @@ do
 
         Card.Tabs = {}
 
+        function Card:UpdateHeight()
+            local activeHeight = BaseY
+            
+            if not AccountView.Visible then
+                for _, t in ipairs(Card.Tabs) do
+                    if t.Container.Visible then
+                        local listLayout = t.Container:FindFirstChildOfClass("UIListLayout")
+                        if listLayout then
+                            activeHeight = math.max(BaseY, listLayout.AbsoluteContentSize.Y + 20)
+                        end
+                        t.Container.Size = UDim2.new(1, 0, 0, activeHeight)
+                        break
+                    end
+                end
+            end
+            
+            BottomDivider.Position = UDim2.fromOffset(10, activeHeight)
+            
+            local rows = math.ceil(#Card.Buttons / 3)
+            local holderHeight = rows * ButtonRowHeight
+            ButtonsHolder.Position = UDim2.fromOffset(0, activeHeight + 1)
+            CardFrame.Size = UDim2.new(1, 0, 0, activeHeight + holderHeight + 1)
+        end
+
         function Card:AddTab(TabInfo)
             TabInfo = Library:Validate(TabInfo, {
                 Name = "",
@@ -4321,8 +4345,17 @@ do
             local TabSubGroup = {
                 Container = TabContent,
                 Elements = {},
-                Resize = function() Groupbox:Resize() end,
+                Resize = function()
+                    Card:UpdateHeight()
+                    Groupbox:Resize()
+                end,
             }
+            
+            TabList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                Card:UpdateHeight()
+                Groupbox:Resize()
+            end)
+
             for k, v in pairs(Funcs) do
                 if typeof(v) == "function" then
                     TabSubGroup[k] = function(self, ...)
@@ -4339,6 +4372,7 @@ do
                         t.Container.Visible = false
                     end
                     TabContent.Visible = true
+                    Card:UpdateHeight()
                 end
             })
 
@@ -4361,12 +4395,6 @@ do
                 ButtonsHolder.Visible = true
             end
 
-            local rows = math.ceil((#Card.Buttons + 1) / 3)
-            local holderHeight = rows * ButtonRowHeight
-            ButtonsHolder.Size = UDim2.new(1, 0, 0, holderHeight)
-            CardFrame.Size = UDim2.new(1, 0, 0, BaseY + holderHeight + 1)
-            Groupbox:Resize()
-
             local btn = New("TextButton", {
                 Name = BtnInfo.Name,
                 BackgroundTransparency = 1,
@@ -4375,6 +4403,14 @@ do
                 Parent = ButtonsHolder,
             })
             
+            table.insert(Card.Buttons, btn)
+
+            local rows = math.ceil(#Card.Buttons / 3)
+            local holderHeight = rows * ButtonRowHeight
+            ButtonsHolder.Size = UDim2.new(1, 0, 0, holderHeight)
+            Card:UpdateHeight()
+            Groupbox:Resize()
+
             local icon = New("ImageLabel", {
                 Name = "Icon",
                 AnchorPoint = Vector2.new(0.5, 0),
@@ -4407,7 +4443,7 @@ do
                 Parent = btn,
             })
             
-            local isDefault = (#Card.Buttons == 0)
+            local isDefault = (#Card.Buttons == 1)
             btn:SetAttribute("Active", isDefault)
 
             if isDefault then
@@ -4447,8 +4483,6 @@ do
 
                 pcall(BtnInfo.Callback)
             end)
-
-            table.insert(Card.Buttons, btn)
         end
 
         Card:AddButton({
@@ -4459,6 +4493,7 @@ do
                 for _, t in ipairs(Card.Tabs) do
                     t.Container.Visible = false
                 end
+                Card:UpdateHeight()
             end
         })
 
@@ -4667,6 +4702,178 @@ do
         end
 
         return GameInfo
+    end
+
+    function Funcs:AddAltList(Idx, Info)
+        if typeof(Idx) == "table" then
+            Info = Idx
+            Idx = nil
+        end
+        Info = Library:Validate(Info, {
+            Accounts = {},
+            SelectedAlts = {},
+            OnToggle = function() end,
+            OnCopyID = function() end,
+            Visible = true,
+        })
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local AltList = {
+            Accounts = Info.Accounts,
+            SelectedAlts = Info.SelectedAlts,
+            Cards = {},
+            Type = "AltList",
+        }
+
+        local function updateCardVisual(altName)
+            local card = AltList.Cards[altName]
+            if not card then return end
+            
+            local isSelected = AltList.SelectedAlts[altName]
+            local playerInGame = Players:FindFirstChild(card.AltInfo.Name)
+            local isOnline = playerInGame ~= nil
+            
+            if isSelected then
+                card.Frame.BackgroundTransparency = 0.95
+                card.Frame.BackgroundColor3 = Library.Scheme.AccentColor
+                card.TextLabel.TextColor3 = Library.Scheme.AccentColor
+                card.TextLabel.Text = card.AltInfo.Name .. " (Controlling)"
+                
+                local iconData = Library:GetCustomIcon("user-cog")
+                if iconData then
+                    card.Icon.Image = iconData.Url
+                    card.Icon.ImageRectOffset = iconData.ImageRectOffset
+                    card.Icon.ImageRectSize = iconData.IconRectSize
+                    card.Icon.ImageColor3 = Library.Scheme.AccentColor
+                end
+            else
+                card.Frame.BackgroundTransparency = 1
+                card.TextLabel.TextColor3 = Library.Scheme.FontColor
+                
+                if isOnline then
+                    card.TextLabel.Text = card.AltInfo.Name .. " (Online)"
+                    local iconData = Library:GetCustomIcon("user-round-check")
+                    if iconData then
+                        card.Icon.Image = iconData.Url
+                        card.Icon.ImageRectOffset = iconData.ImageRectOffset
+                        card.Icon.ImageRectSize = iconData.IconRectSize
+                        card.Icon.ImageColor3 = Color3.fromRGB(0, 200, 100)
+                    end
+                else
+                    card.TextLabel.Text = card.AltInfo.Name .. " (Offline)"
+                    local iconData = Library:GetCustomIcon("user-round-x")
+                    if iconData then
+                        card.Icon.Image = iconData.Url
+                        card.Icon.ImageRectOffset = iconData.ImageRectOffset
+                        card.Icon.ImageRectSize = iconData.IconRectSize
+                        card.Icon.ImageColor3 = Color3.fromRGB(150, 150, 150)
+                    end
+                end
+            end
+        end
+
+        function AltList:AddAccount(alt)
+            local cardFrame = New("Frame", {
+                Name = alt.Name .. "Card",
+                Size = UDim2.new(1, 0, 0, 28),
+                BackgroundTransparency = 1,
+                Parent = Container,
+            })
+            
+            local cardCorner = New("UICorner", {
+                CornerRadius = UDim.new(0, 6),
+                Parent = cardFrame,
+            })
+            
+            local icon = New("ImageLabel", {
+                Name = "Icon",
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(6, 4),
+                Size = UDim2.fromOffset(20, 20),
+                Parent = cardFrame,
+            })
+            
+            local textLabel = New("TextLabel", {
+                Name = "Label",
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(32, 0),
+                Size = UDim2.new(1, -70, 1, 0),
+                Font = Enum.Font.GothamMedium,
+                TextSize = 12,
+                TextColor3 = "FontColor",
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = cardFrame,
+            })
+            Library:AddToRegistry(textLabel, { TextColor3 = "FontColor" })
+            
+            local toggleBtn = New("TextButton", {
+                Name = "ToggleBtn",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -36, 1, 0),
+                Text = "",
+                Parent = cardFrame,
+            })
+            
+            local copyBtn = New("TextButton", {
+                Name = "CopyBtn",
+                BackgroundColor3 = "MainColor",
+                Position = UDim2.new(1, -30, 0, 4),
+                Size = UDim2.fromOffset(24, 20),
+                Text = "ID",
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = "FontColor",
+                Parent = cardFrame,
+            })
+            
+            local copyCorner = New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = copyBtn,
+            })
+            
+            local copyStroke = New("UIStroke", {
+                Color = "OutlineColor",
+                Thickness = 1,
+                Parent = copyBtn,
+            })
+            
+            table.insert(Library.Corners, cardCorner)
+            table.insert(Library.Corners, copyCorner)
+            Library:AddToRegistry(copyBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
+            Library:AddToRegistry(copyStroke, { Color = "OutlineColor" })
+            
+            AltList.Cards[alt.Name] = {
+                Frame = cardFrame,
+                Icon = icon,
+                TextLabel = textLabel,
+                AltInfo = alt
+            }
+            
+            toggleBtn.MouseButton1Click:Connect(function()
+                AltList.SelectedAlts[alt.Name] = not AltList.SelectedAlts[alt.Name]
+                updateCardVisual(alt.Name)
+                pcall(Info.OnToggle, alt, AltList.SelectedAlts[alt.Name])
+            end)
+            
+            copyBtn.MouseButton1Click:Connect(function()
+                pcall(Info.OnCopyID, alt)
+            end)
+            
+            updateCardVisual(alt.Name)
+            Groupbox:Resize()
+        end
+
+        for _, alt in ipairs(AltList.Accounts) do
+            AltList:AddAccount(alt)
+        end
+
+        if Idx then
+            Library.Options[Idx] = AltList
+        end
+
+        return AltList
     end
 
     function Funcs:AddMacroStatus(Idx, Info)
