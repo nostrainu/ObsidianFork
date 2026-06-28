@@ -4748,7 +4748,7 @@ do
             local isOnline = playerInGame ~= nil
             
             local isFarming = false
-            if isOnline and Info.GetFarmingStatus then
+            if Info.GetFarmingStatus then
                 local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
                 if success then
                     isFarming = res
