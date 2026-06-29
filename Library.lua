@@ -12784,72 +12784,209 @@ function Library:Prompt(Info)
         screenGui.Parent = game:GetService("CoreGui")
     end
     
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 340, 0, 180)
-    frame.Position = UDim2.new(0.5, -170, 0.5, -90)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
+    local Overlay = New("TextButton", {
+        AutoButtonColor = false,
+        BackgroundColor3 = "DarkColor",
+        BackgroundTransparency = 0.5,
+        Size = UDim2.fromScale(1, 1),
+        Text = "",
+        Active = true,
+        ZIndex = 9000,
+        Parent = screenGui,
+    })
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
+    local DialogFrame = New("TextButton", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = "BackgroundColor",
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(340, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Text = "",
+        AutoButtonColor = false,
+        ZIndex = 9001,
+        Parent = Overlay,
+    })
     
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 70)
-    stroke.Thickness = 1
-    stroke.Parent = frame
+    table.insert(
+        Library.Corners,
+        New("UICorner", {
+            CornerRadius = UDim.new(0, Library.CornerRadius or 6),
+            Parent = DialogFrame,
+        })
+    )
+    Library:AddOutline(DialogFrame)
     
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -20, 0, 30)
-    titleLabel.Position = UDim2.new(0, 10, 0, 12)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 14
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-    titleLabel.Parent = frame
+    local InnerContainer = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        ZIndex = 9002,
+        Parent = DialogFrame,
+    })
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -24, 0, 65)
-    label.Position = UDim2.new(0, 12, 0, 45)
-    label.BackgroundTransparency = 1
-    label.Text = desc
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.GothamMedium
-    label.TextSize = 12
-    label.TextWrapped = true
-    label.TextYAlignment = Enum.TextYAlignment.Top
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.Parent = frame
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 15),
+        PaddingLeft = UDim.new(0, 15),
+        PaddingRight = UDim.new(0, 15),
+        PaddingTop = UDim.new(0, 15),
+        Parent = InnerContainer,
+    })
+    
+    New("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = InnerContainer,
+    })
+    
+    local HeaderContainer = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 1,
+        ZIndex = 9002,
+        Parent = InnerContainer,
+    })
+    
+    New("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = HeaderContainer,
+    })
+    
+    New("UIPadding", {
+        PaddingBottom = UDim.new(0, 5),
+        Parent = HeaderContainer,
+    })
+    
+    local TitleRow = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 1,
+        ZIndex = 9002,
+        Parent = HeaderContainer,
+    })
+    
+    New("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        FillDirection = Enum.FillDirection.Horizontal,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = TitleRow,
+    })
+    
+    local TitleLabel = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Text = title,
+        TextSize = 18,
+        TextColor3 = "FontColor",
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Font = Enum.Font.GothamMedium,
+        LayoutOrder = 2,
+        ZIndex = 9002,
+        Parent = TitleRow,
+    })
+    
+    local DescriptionLabel = New("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Text = desc,
+        TextSize = 14,
+        TextColor3 = "FontColor",
+        TextTransparency = 0.2,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+        Font = Enum.Font.GothamMedium,
+        LayoutOrder = 2,
+        ZIndex = 9002,
+        Parent = HeaderContainer,
+    })
+    
+    local _Sep = New("Frame", {
+        BackgroundColor3 = "OutlineColor",
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 1),
+        LayoutOrder = 5,
+        ZIndex = 9002,
+        Parent = InnerContainer,
+    })
+    
+    local ButtonsHolder = New("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 6,
+        ZIndex = 9002,
+        Parent = InnerContainer,
+    })
+    
+    New("UIListLayout", {
+        Padding = UDim.new(0, 8),
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = ButtonsHolder,
+    })
+    
+    New("UIPadding", {
+        PaddingTop = UDim.new(0, 5),
+        Parent = ButtonsHolder,
+    })
     
     local buttonCount = #buttons
-    local buttonHeight = 32
-    local buttonPadding = 12
-    local totalWidth = 340 - 24
-    local availableWidth = totalWidth - ((buttonCount - 1) * buttonPadding)
+    local totalWidth = 340 - 30
+    local availableWidth = totalWidth - ((buttonCount - 1) * 8)
     local buttonWidth = math.floor(availableWidth / buttonCount)
     
     for i, btnInfo in ipairs(buttons) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
+        local ButtonContainer = New("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromOffset(buttonWidth, 26),
+            LayoutOrder = i,
+            ZIndex = 9002,
+            Parent = ButtonsHolder,
+        })
         
-        local xPos = 12 + (i - 1) * (buttonWidth + buttonPadding)
-        btn.Position = UDim2.new(0, xPos, 1, -45)
+        local TextBtn = New("TextButton", {
+            BackgroundColor3 = btnInfo.Color or "MainColor",
+            BackgroundTransparency = 0,
+            Size = UDim2.fromScale(1, 1),
+            Text = "",
+            AutoButtonColor = false,
+            ZIndex = 9002,
+            Parent = ButtonContainer,
+        })
+        Library:AddOutline(TextBtn)
+        table.insert(
+            Library.Corners,
+            New("UICorner", {
+                CornerRadius = UDim.new(0, Library.CornerRadius or 6),
+                Parent = TextBtn
+            })
+        )
         
-        btn.BackgroundColor3 = btnInfo.Color or Color3.fromRGB(50, 50, 60)
-        btn.Text = btnInfo.Text or "Button"
-        btn.TextColor3 = btnInfo.TextColor or Color3.fromRGB(255, 255, 255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 12
-        btn.Parent = frame
+        New("UIPadding", {
+            PaddingLeft = UDim.new(0, 15),
+            PaddingRight = UDim.new(0, 15),
+            Parent = TextBtn,
+        })
         
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 6)
-        btnCorner.Parent = btn
+        New("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Text = btnInfo.Text or "Button",
+            TextColor3 = btnInfo.TextColor or "FontColor",
+            TextSize = 14,
+            Font = Enum.Font.GothamMedium,
+            ZIndex = 9002,
+            Parent = TextBtn,
+        })
         
-        btn.MouseButton1Click:Connect(function()
+        TextBtn.MouseButton1Click:Connect(function()
             screenGui:Destroy()
             if btnInfo.Callback then
                 pcall(btnInfo.Callback)
