@@ -2418,8 +2418,8 @@ function Library:CreateKeySystem(KeyInfo)
 
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.fromOffset(360, 240)
-    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -120)
+    MainFrame.Size = UDim2.fromOffset(360, 180)
+    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -90)
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.BorderSizePixel = 0
     MainFrame.Parent = ScreenGui
@@ -2484,20 +2484,20 @@ function Library:CreateKeySystem(KeyInfo)
 
     local Content = Instance.new("Frame")
     Content.Name = "Content"
-    Content.Size = UDim2.new(1, -20, 1, -40)
+    Content.Size = UDim2.new(1, -20, 1, -35)
     Content.Position = UDim2.fromOffset(10, 35)
     Content.BackgroundTransparency = 1
     Content.Parent = MainFrame
 
     local Layout = Instance.new("UIListLayout")
     Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 10)
+    Layout.Padding = UDim.new(0, 6)
     Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     Layout.Parent = Content
 
     local ImageBox = Instance.new("Frame")
     ImageBox.Name = "ImageBox"
-    ImageBox.Size = UDim2.new(1, 0, 0, 60)
+    ImageBox.Size = UDim2.new(1, 0, 0, 50)
     ImageBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     ImageBox.BorderSizePixel = 0
     ImageBox.Parent = Content
@@ -2515,8 +2515,8 @@ function Library:CreateKeySystem(KeyInfo)
 
     local Logo = Instance.new("ImageLabel")
     Logo.Name = "Logo"
-    Logo.Size = UDim2.fromOffset(50, 50)
-    Logo.Position = UDim2.new(0.5, -25, 0.5, -25)
+    Logo.Size = UDim2.fromOffset(40, 40)
+    Logo.Position = UDim2.new(0.5, -20, 0.5, -20)
     Logo.BackgroundTransparency = 1
     Logo.Image = LogoAsset
     Logo.ScaleType = Enum.ScaleType.Fit
@@ -2524,7 +2524,7 @@ function Library:CreateKeySystem(KeyInfo)
 
     local InputContainer = Instance.new("Frame")
     InputContainer.Name = "InputContainer"
-    InputContainer.Size = UDim2.new(1, 0, 0, 45)
+    InputContainer.Size = UDim2.new(1, 0, 0, 40)
     InputContainer.BackgroundTransparency = 1
     InputContainer.Parent = Content
     InputContainer.LayoutOrder = 2
@@ -2543,7 +2543,7 @@ function Library:CreateKeySystem(KeyInfo)
     local TextBox = Instance.new("TextBox")
     TextBox.Name = "TextBox"
     TextBox.Size = UDim2.new(1, 0, 0, 26)
-    TextBox.Position = UDim2.fromOffset(0, 18)
+    TextBox.Position = UDim2.fromOffset(0, 14)
     TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     TextBox.BorderSizePixel = 0
     TextBox.Text = ""
@@ -2574,7 +2574,7 @@ function Library:CreateKeySystem(KeyInfo)
 
     local ButtonContainer = Instance.new("Frame")
     ButtonContainer.Name = "ButtonContainer"
-    ButtonContainer.Size = UDim2.new(1, 0, 0, 28)
+    ButtonContainer.Size = UDim2.new(1, 0, 0, 26)
     ButtonContainer.BackgroundTransparency = 1
     ButtonContainer.Parent = Content
     ButtonContainer.LayoutOrder = 3
