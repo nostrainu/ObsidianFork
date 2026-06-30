@@ -9047,7 +9047,7 @@ function Library:CreateWindow(WindowInfo)
     local Tabs, SidebarBottom
     local Container
     local BackgroundImage
-    local BottomBackground
+    local BottomBackground, BottomBar, BottomLine
     local FooterLabel
 
     local IsCompact = WindowInfo.SidebarCompacted
@@ -9310,22 +9310,22 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 4)
             end,
-            Position = UDim2.fromScale(0, 1),
-            Size = UDim2.new(1, 0, 0, 20 + WindowInfo.CornerRadius),
+            Position = UDim2.new(0, InitialLeftWidth, 1, 0),
+            Size = UDim2.new(1, -InitialLeftWidth, 0, 20 + WindowInfo.CornerRadius),
             Parent = MainFrame
         })
-        Library:MakeLine(MainFrame, {
+        BottomLine = Library:MakeLine(MainFrame, {
             AnchorPoint = Vector2.new(0, 1),
-            Position = UDim2.new(0, 0, 1, -20),
-            Size = UDim2.new(1, 0, 0, 1),
+            Position = UDim2.new(0, InitialLeftWidth, 1, -20),
+            Size = UDim2.new(1, -InitialLeftWidth, 0, 1),
             ZIndex = 3,
         })
 
-        local BottomBar = New("Frame", {
+        BottomBar = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundTransparency = 1,
-            Position = UDim2.fromScale(0, 1),
-            Size = UDim2.new(1, 0, 0, 20),
+            Position = UDim2.new(0, InitialLeftWidth, 1, 0),
+            Size = UDim2.new(1, -InitialLeftWidth, 0, 20),
             Parent = MainFrame,
         })
         table.insert(
@@ -9590,6 +9590,13 @@ function Library:CreateWindow(WindowInfo)
         DividerLine.Position = UDim2.fromOffset(Width, 0)
         HeaderLine.Position = UDim2.new(0, Width, 0, 48)
         HeaderLine.Size = UDim2.new(1, -Width, 0, 1)
+
+        BottomBackground.Position = UDim2.new(0, Width, 1, 0)
+        BottomBackground.Size = UDim2.new(1, -Width, 0, 20 + WindowInfo.CornerRadius)
+        BottomLine.Position = UDim2.new(0, Width, 1, -20)
+        BottomLine.Size = UDim2.new(1, -Width, 0, 1)
+        BottomBar.Position = UDim2.new(0, Width, 1, 0)
+        BottomBar.Size = UDim2.new(1, -Width, 0, 20)
 
         TitleHolder.Size = UDim2.new(0, Width, 1, 0)
         RightWrapper.Size = UDim2.new(1, -Width - (MoveIcon and 78 or 44) - 1, 1, -16)
