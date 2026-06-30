@@ -5174,44 +5174,58 @@ do
             end
         end
 
-        local ListContainer = New("ScrollingFrame", {
+        local ListContainer = New("Frame", {
             Name = "AltListContainer",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 0),
-            ScrollBarThickness = 0,
-            CanvasSize = UDim2.fromScale(0, 0),
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            AutomaticSize = Enum.AutomaticSize.Y,
             Parent = Container,
         })
-        Library:AddToRegistry(ListContainer, { ScrollBarImageColor3 = "OutlineColor" })
-
-        local ListPadding = New("UIPadding", {
-            PaddingRight = UDim.new(0, 0),
-            Parent = ListContainer,
-        })
-
         local ListLayout = New("UIListLayout", {
             Padding = UDim.new(0, 8),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = ListContainer,
         })
 
-        ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            local contentHeight = ListLayout.AbsoluteContentSize.Y
+        local AltsScrollingFrame = New("ScrollingFrame", {
+            Name = "AltsScrollingFrame",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            ScrollBarThickness = 0,
+            CanvasSize = UDim2.fromScale(0, 0),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            LayoutOrder = 0,
+            Parent = ListContainer,
+        })
+        Library:AddToRegistry(AltsScrollingFrame, { ScrollBarImageColor3 = "OutlineColor" })
+
+        local AltsPadding = New("UIPadding", {
+            PaddingRight = UDim.new(0, 0),
+            Parent = AltsScrollingFrame,
+        })
+
+        local AltsLayout = New("UIListLayout", {
+            Padding = UDim.new(0, 8),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = AltsScrollingFrame,
+        })
+
+        AltsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            local contentHeight = AltsLayout.AbsoluteContentSize.Y
             local cardHeight = Info.CardHeight
-            local padding = ListLayout.Padding.Offset
+            local padding = AltsLayout.Padding.Offset
             local maxVisible = Info.MaxVisible
             
             local maxHeight = (cardHeight * maxVisible) + (padding * math.max(0, maxVisible - 1))
             local finalHeight = math.min(contentHeight, maxHeight)
-            ListContainer.Size = UDim2.new(1, 0, 0, finalHeight)
-            ListContainer.ScrollingEnabled = contentHeight > maxHeight
+            AltsScrollingFrame.Size = UDim2.new(1, 0, 0, finalHeight)
+            AltsScrollingFrame.ScrollingEnabled = contentHeight > maxHeight
             if contentHeight > maxHeight then
-                ListPadding.PaddingRight = UDim.new(0, 6)
-                ListContainer.ScrollBarThickness = 3
+                AltsPadding.PaddingRight = UDim.new(0, 6)
+                AltsScrollingFrame.ScrollBarThickness = 3
             else
-                ListPadding.PaddingRight = UDim.new(0, 0)
-                ListContainer.ScrollBarThickness = 0
+                AltsPadding.PaddingRight = UDim.new(0, 0)
+                AltsScrollingFrame.ScrollBarThickness = 0
             end
         end)
 
@@ -5673,7 +5687,7 @@ do
                 BackgroundColor3 = "MainColor",
                 BackgroundTransparency = 0.75,
                 LayoutOrder = customSettings.IsMain and -10 or 0,
-                Parent = ListContainer,
+                Parent = customSettings.IsMain and ListContainer or AltsScrollingFrame,
             })
             
             local cardCorner = New("UICorner", {
