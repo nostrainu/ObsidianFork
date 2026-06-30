@@ -9044,7 +9044,7 @@ function Library:CreateWindow(WindowInfo)
     local CurrentTabLabel
     local CurrentTabDescription
     local ResizeButton
-    local Tabs
+    local Tabs, SidebarBottom
     local Container
     local BackgroundImage
     local BottomBackground
@@ -9390,7 +9390,7 @@ function Library:CreateWindow(WindowInfo)
             Parent = Tabs,
         })
 
-        local SidebarBottom = New("Frame", {
+        SidebarBottom = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 0, 1, -21),
