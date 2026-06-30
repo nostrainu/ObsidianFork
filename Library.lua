@@ -4725,12 +4725,26 @@ do
             OnToggle = function() end,
             OnCopyID = function() end,
             OnDelete = function() end,
+            OnPause = function() end,
             GetFarmingStatus = function(alt, isOnline) return false end,
             Visible = true,
         })
 
         local Groupbox = self
         local Container = Groupbox.Container
+
+        local ListContainer = New("Frame", {
+            Name = "AltListContainer",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = Container,
+        })
+        New("UIListLayout", {
+            Padding = UDim.new(0, 4),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = ListContainer,
+        })
 
         local AltList = {
             Accounts = Info.Accounts,
@@ -4747,11 +4761,18 @@ do
             local playerInGame = Players:FindFirstChild(card.AltInfo.Name)
             local isOnline = playerInGame ~= nil
             
-            local isFarming = false
+            local status = "Offline"
+            if isOnline then
+                status = "Online"
+            end
             if Info.GetFarmingStatus then
                 local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
                 if success then
-                    isFarming = res
+                    if type(res) == "string" then
+                        status = res
+                    elseif type(res) == "boolean" and res then
+                        status = "Farming"
+                    end
                 end
             end
             
@@ -4763,10 +4784,13 @@ do
             else
                 card.Frame.BackgroundTransparency = 1
                 
-                if isFarming then
+                if status == "Farming" then
                     card.TextLabel.Text = card.AltInfo.Name .. " (Farming)"
                     card.TextLabel.TextColor3 = Color3.fromRGB(240, 200, 0)
-                elseif isOnline then
+                elseif status == "Paused" then
+                    card.TextLabel.Text = card.AltInfo.Name .. " (Paused)"
+                    card.TextLabel.TextColor3 = Color3.fromRGB(0, 180, 240)
+                elseif status == "Online" then
                     card.TextLabel.Text = card.AltInfo.Name .. " (Online)"
                     card.TextLabel.TextColor3 = Color3.fromRGB(0, 200, 100)
                 else
@@ -4781,7 +4805,7 @@ do
                 Name = alt.Name .. "Card",
                 Size = UDim2.new(1, 0, 0, 28),
                 BackgroundTransparency = 1,
-                Parent = Container,
+                Parent = ListContainer,
             })
             
             local cardCorner = New("UICorner", {
@@ -4793,7 +4817,7 @@ do
                 Name = "Label",
                 BackgroundTransparency = 1,
                 Position = UDim2.fromOffset(8, 0),
-                Size = UDim2.new(1, -70, 1, 0),
+                Size = UDim2.new(1, -98, 1, 0),
                 Font = Enum.Font.GothamMedium,
                 TextSize = 12,
                 TextColor3 = "FontColor",
@@ -4805,7 +4829,7 @@ do
             local toggleBtn = New("TextButton", {
                 Name = "ToggleBtn",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, -64, 1, 0),
+                Size = UDim2.new(1, -92, 1, 0),
                 Text = "",
                 Parent = cardFrame,
             })
@@ -4855,14 +4879,40 @@ do
                 Thickness = 1,
                 Parent = copyBtn,
             })
+
+            local pauseBtn = New("TextButton", {
+                Name = "PauseBtn",
+                BackgroundColor3 = "MainColor",
+                Position = UDim2.new(1, -86, 0, 4),
+                Size = UDim2.fromOffset(24, 20),
+                Text = "⏸",
+                Font = Enum.Font.GothamBold,
+                TextSize = 10,
+                TextColor3 = "FontColor",
+                Parent = cardFrame,
+            })
+            
+            local pauseCorner = New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = pauseBtn,
+            })
+            
+            local pauseStroke = New("UIStroke", {
+                Color = "OutlineColor",
+                Thickness = 1,
+                Parent = pauseBtn,
+            })
             
             table.insert(Library.Corners, cardCorner)
             table.insert(Library.Corners, deleteCorner)
             table.insert(Library.Corners, copyCorner)
+            table.insert(Library.Corners, pauseCorner)
             Library:AddToRegistry(deleteBtn, { BackgroundColor3 = "MainColor" })
             Library:AddToRegistry(deleteStroke, { Color = "OutlineColor" })
             Library:AddToRegistry(copyBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
             Library:AddToRegistry(copyStroke, { Color = "OutlineColor" })
+            Library:AddToRegistry(pauseBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
+            Library:AddToRegistry(pauseStroke, { Color = "OutlineColor" })
             
             AltList.Cards[alt.Name] = {
                 Frame = cardFrame,
@@ -4877,17 +4927,29 @@ do
             end)
             
             deleteBtn.MouseButton1Click:Connect(function()
-                pcall(Info.OnDelete, alt)
-                cardFrame:Destroy()
-                AltList.Cards[alt.Name] = nil
-                AltList.SelectedAlts[alt.Name] = nil
-                task.defer(function()
-                    Groupbox:Resize()
-                end)
+                local function doDelete()
+                    if cardFrame and cardFrame.Parent then
+                        cardFrame:Destroy()
+                    end
+                    AltList.Cards[alt.Name] = nil
+                    AltList.SelectedAlts[alt.Name] = nil
+                    task.defer(function()
+                        Groupbox:Resize()
+                    end)
+                end
+                if Info.OnDelete then
+                    pcall(Info.OnDelete, alt, doDelete)
+                else
+                    doDelete()
+                end
             end)
             
             copyBtn.MouseButton1Click:Connect(function()
                 pcall(Info.OnCopyID, alt)
+            end)
+
+            pauseBtn.MouseButton1Click:Connect(function()
+                pcall(Info.OnPause, alt)
             end)
             
             updateCardVisual(alt.Name)
