@@ -2372,6 +2372,295 @@ function Library:Unload()
     getgenv().Library = nil
 end
 
+function Library:CreateKeySystem(KeyInfo)
+    KeyInfo = KeyInfo or {}
+    local TitleText = KeyInfo.Title or "Key System"
+    local CorrectKey = KeyInfo.Key
+    local SavePath = KeyInfo.SavePath
+    local DiscordUrl = KeyInfo.Discord or ""
+    local LogoAsset = KeyInfo.Logo or "rbxassetid://0"
+    local SuccessCallback = KeyInfo.Callback
+
+    local VerifyText = KeyInfo.VerifyText or "Verify Key"
+    local GetKeyText = KeyInfo.GetKeyText or "Get Key (Discord)"
+    local PlaceholderText = KeyInfo.Placeholder or "Enter access key..."
+    local LabelText = KeyInfo.Label or "Key"
+
+    assert(CorrectKey, "CreateKeySystem requires a Key parameter.")
+    assert(SavePath, "CreateKeySystem requires a SavePath parameter.")
+
+    local function ensureFolders(filePath)
+        if not makefolder then return end
+        local parts = filePath:split("/")
+        if #parts > 1 then
+            local current = ""
+            for i = 1, #parts - 1 do
+                current = current .. (i == 1 and "" or "/") .. parts[i]
+                if not isfolder(current) then
+                    pcall(makefolder, current)
+                end
+            end
+        end
+    end
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = TitleText:gsub("%s+", "") .. "UI"
+    ScreenGui.ResetOnSpawn = false
+    
+    if syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = game:GetService("CoreGui")
+    elseif gethui then
+        ScreenGui.Parent = gethui()
+    else
+        ScreenGui.Parent = game:GetService("CoreGui")
+    end
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.fromOffset(360, 240)
+    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -120)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 4)
+    Corner.Parent = MainFrame
+
+    local Border = Instance.new("UIStroke")
+    Border.Color = Color3.fromRGB(40, 40, 40)
+    Border.Thickness = 1
+    Border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    Border.Parent = MainFrame
+
+    local UserInputService = game:GetService("UserInputService")
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    MainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    MainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.BackgroundTransparency = 1
+    Title.Text = TitleText
+    Title.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Title.TextSize = 14
+    Title.Font = Enum.Font.GothamMedium
+    Title.Parent = MainFrame
+
+    local Separator = Instance.new("Frame")
+    Separator.Name = "Separator"
+    Separator.Size = UDim2.new(1, 0, 0, 1)
+    Separator.Position = UDim2.fromOffset(0, 30)
+    Separator.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Separator.BorderSizePixel = 0
+    Separator.Parent = MainFrame
+
+    local Content = Instance.new("Frame")
+    Content.Name = "Content"
+    Content.Size = UDim2.new(1, -20, 1, -40)
+    Content.Position = UDim2.fromOffset(10, 35)
+    Content.BackgroundTransparency = 1
+    Content.Parent = MainFrame
+
+    local Layout = Instance.new("UIListLayout")
+    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    Layout.Padding = UDim.new(0, 10)
+    Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    Layout.Parent = Content
+
+    local ImageBox = Instance.new("Frame")
+    ImageBox.Name = "ImageBox"
+    ImageBox.Size = UDim2.new(1, 0, 0, 60)
+    ImageBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    ImageBox.BorderSizePixel = 0
+    ImageBox.Parent = Content
+    ImageBox.LayoutOrder = 1
+
+    local ImageBoxCorner = Instance.new("UICorner")
+    ImageBoxCorner.CornerRadius = UDim.new(0, 4)
+    ImageBoxCorner.Parent = ImageBox
+
+    local ImageBoxBorder = Instance.new("UIStroke")
+    ImageBoxBorder.Color = Color3.fromRGB(30, 30, 30)
+    ImageBoxBorder.Thickness = 1
+    ImageBoxBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    ImageBoxBorder.Parent = ImageBox
+
+    local Logo = Instance.new("ImageLabel")
+    Logo.Name = "Logo"
+    Logo.Size = UDim2.fromOffset(50, 50)
+    Logo.Position = UDim2.new(0.5, -25, 0.5, -25)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = LogoAsset
+    Logo.ScaleType = Enum.ScaleType.Fit
+    Logo.Parent = ImageBox
+
+    local InputContainer = Instance.new("Frame")
+    InputContainer.Name = "InputContainer"
+    InputContainer.Size = UDim2.new(1, 0, 0, 45)
+    InputContainer.BackgroundTransparency = 1
+    InputContainer.Parent = Content
+    InputContainer.LayoutOrder = 2
+
+    local InputLabel = Instance.new("TextLabel")
+    InputLabel.Name = "Label"
+    InputLabel.Size = UDim2.new(1, 0, 0, 15)
+    InputLabel.BackgroundTransparency = 1
+    InputLabel.Text = LabelText
+    InputLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    InputLabel.TextSize = 12
+    InputLabel.TextXAlignment = Enum.TextXAlignment.Left
+    InputLabel.Font = Enum.Font.GothamMedium
+    InputLabel.Parent = InputContainer
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Name = "TextBox"
+    TextBox.Size = UDim2.new(1, 0, 0, 26)
+    TextBox.Position = UDim2.fromOffset(0, 18)
+    TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    TextBox.BorderSizePixel = 0
+    TextBox.Text = ""
+    TextBox.PlaceholderText = PlaceholderText
+    TextBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+    TextBox.TextColor3 = Color3.fromRGB(240, 240, 240)
+    TextBox.TextSize = 12
+    TextBox.Font = Enum.Font.GothamMedium
+    TextBox.ClipsDescendants = true
+    TextBox.Parent = InputContainer
+
+    local TextBoxCorner = Instance.new("UICorner")
+    TextBoxCorner.CornerRadius = UDim.new(0, 4)
+    TextBoxCorner.Parent = TextBox
+
+    local TextBoxBorder = Instance.new("UIStroke")
+    TextBoxBorder.Color = Color3.fromRGB(30, 30, 30)
+    TextBoxBorder.Thickness = 1
+    TextBoxBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    TextBoxBorder.Parent = TextBox
+
+    TextBox.Focused:Connect(function()
+        TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 70)}):Play()
+    end)
+    TextBox.FocusLost:Connect(function()
+        TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
+    end)
+
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Name = "ButtonContainer"
+    ButtonContainer.Size = UDim2.new(1, 0, 0, 28)
+    ButtonContainer.BackgroundTransparency = 1
+    ButtonContainer.Parent = Content
+    ButtonContainer.LayoutOrder = 3
+
+    local ButtonLayout = Instance.new("UIListLayout")
+    ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+    ButtonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ButtonLayout.Padding = UDim.new(0, 10)
+    ButtonLayout.Parent = ButtonContainer
+
+    local function setupButton(btn, text, layoutOrder)
+        btn.Size = UDim2.new(0.5, -5, 1, 0)
+        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        btn.BorderSizePixel = 0
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+        btn.TextSize = 12
+        btn.Font = Enum.Font.GothamMedium
+        btn.Parent = ButtonContainer
+        btn.LayoutOrder = layoutOrder
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 4)
+        btnCorner.Parent = btn
+
+        local btnBorder = Instance.new("UIStroke")
+        btnBorder.Color = Color3.fromRGB(30, 30, 30)
+        btnBorder.Thickness = 1
+        btnBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        btnBorder.Parent = btn
+
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
+            TweenService:Create(btnBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(50, 50, 50)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
+            TweenService:Create(btnBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
+        end)
+
+        return btnBorder
+    end
+
+    local VerifyBtn = Instance.new("TextButton")
+    local VerifyBtnBorder = setupButton(VerifyBtn, VerifyText, 1)
+
+    local GetKeyBtn = Instance.new("TextButton")
+    local GetKeyBtnBorder = setupButton(GetKeyBtn, GetKeyText, 2)
+
+    VerifyBtn.MouseButton1Click:Connect(function()
+        local enteredKey = TextBox.Text
+        if enteredKey == CorrectKey then
+            if writefile then
+                ensureFolders(SavePath)
+                pcall(writefile, SavePath, CorrectKey)
+            end
+            
+            ScreenGui:Destroy()
+            
+            if SuccessCallback then
+                SuccessCallback()
+            end
+        else
+            TweenService:Create(TextBoxBorder, TweenInfo.new(0.1), {Color = Color3.fromRGB(200, 50, 50)}):Play()
+            task.delay(1, function()
+                TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
+            end)
+        end
+    end)
+
+    GetKeyBtn.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard(DiscordUrl)
+            GetKeyBtn.Text = "Link Copied!"
+            task.delay(2, function()
+                GetKeyBtn.Text = GetKeyText
+            end)
+        else
+            GetKeyBtn.Text = DiscordUrl:gsub("https://", "")
+            task.delay(5, function()
+                GetKeyBtn.Text = GetKeyText
+            end)
+        end
+    end)
+end
+
 local CheckIcon = Library:GetIcon("check")
 local ArrowIcon = Library:GetIcon("chevron-up")
 local ResizeIcon = Library:GetIcon("move-diagonal-2")
