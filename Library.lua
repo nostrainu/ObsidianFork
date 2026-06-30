@@ -4602,9 +4602,17 @@ do
             
             BottomDivider.Position = UDim2.fromOffset(10, activeHeight)
             
-            local rows = math.ceil(#Card.Buttons / 3)
+            local btnCount = #Card.Buttons
+            local rows = (btnCount <= 5) and 1 or math.ceil(btnCount / 3)
+            if btnCount <= 5 and btnCount > 0 then
+                GridLayout.CellSize = UDim2.new(1 / btnCount, 0, 0, ButtonRowHeight)
+            else
+                GridLayout.CellSize = UDim2.new(1 / 3, 0, 0, ButtonRowHeight)
+            end
+            
             local holderHeight = rows * ButtonRowHeight
             ButtonsHolder.Position = UDim2.fromOffset(0, activeHeight + 1)
+            ButtonsHolder.Size = UDim2.new(1, 0, 0, holderHeight)
             CardFrame.Size = UDim2.new(1, 0, 0, activeHeight + holderHeight + 1)
             Groupbox:Resize()
         end
@@ -4702,7 +4710,8 @@ do
             
             table.insert(Card.Buttons, btn)
 
-            local rows = math.ceil(#Card.Buttons / 3)
+            local btnCount = #Card.Buttons
+            local rows = (btnCount <= 5) and 1 or math.ceil(btnCount / 3)
             local holderHeight = rows * ButtonRowHeight
             ButtonsHolder.Size = UDim2.new(1, 0, 0, holderHeight)
             Card:UpdateHeight()
