@@ -9395,13 +9395,17 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = "BackgroundColor",
             BackgroundTransparency = 0,
             BorderSizePixel = 0,
-            Position = UDim2.new(0, 0, 1, -21),
+            Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(0, InitialLeftWidth, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
             Parent = MainFrame,
         })
         New("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = SidebarBottom,
+        })
+        New("UIPadding", {
+            PaddingBottom = UDim.new(0, 21),
             Parent = SidebarBottom,
         })
 
@@ -9604,7 +9608,7 @@ function Library:CreateWindow(WindowInfo)
             SidebarBottom.Size = UDim2.new(0, Width, 0, 0)
         end
         local BottomHeight = SidebarBottom and SidebarBottom.AbsoluteSize.Y or 0
-        Tabs.Size = UDim2.new(0, Width, 1, -70 - BottomHeight)
+        Tabs.Size = UDim2.new(0, Width, 1, -49 - BottomHeight)
         Container.Size = UDim2.new(1, -Width - 1, 1, -70)
 
         if WindowInfo.EnableCompacting or WindowInfo.SideBarText == false then
