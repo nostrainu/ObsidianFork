@@ -1052,7 +1052,7 @@ function Library:UpdateSearch(SearchText)
         Library.LastSearchTab = nil
         return
     end
-    if not Library.GlobalSearch and Library.ActiveTab and Library.ActiveTab.IsKeyTab then
+    if Library.ActiveTab and Library.ActiveTab.IsKeyTab then
         Library.Searching = false
         Library.LastSearchTab = nil
         return
@@ -4722,16 +4722,157 @@ do
         Info = Library:Validate(Info, {
             Accounts = {},
             SelectedAlts = {},
+            Searchable = false,
+            AllowDelete = true,
+            AllowCopyID = true,
+            AllowPause = true,
             OnToggle = function() end,
             OnCopyID = function() end,
             OnDelete = function() end,
             OnPause = function() end,
+            OnOpenStats = function() end,
+            OnOfflineAlert = function() end,
             GetFarmingStatus = function(alt, isOnline) return false end,
+            GetAccountDetails = function(alt, isMain) return "" end,
+            StatusColors = {},
+            StatusOrder = {},
             Visible = true,
         })
 
+        local AltList = nil
         local Groupbox = self
         local Container = Groupbox.Container
+        local bulkSelectCtrl = nil
+        local bulkPauseCtrl = nil
+        local selectAllState = false
+        local bulkPauseState = false
+
+        local function runInQueue(callback)
+            if getgenv().GaG2_Queue then
+                table.insert(getgenv().GaG2_Queue, callback)
+            else
+                task.spawn(callback)
+            end
+        end
+
+        local function registerPressColor(btn, onClickCallback, useQueue)
+            local isHovered = false
+            local isActive = false
+
+            local function updateVisual()
+                local targetBg = Library.Scheme.MainColor
+                local targetStroke = Library.Scheme.OutlineColor
+                local targetIconColor = Library.Scheme.FontColor
+
+                if isActive then
+                    targetBg = Library.Scheme.AccentColor
+                    targetStroke = Library.Scheme.AccentColor
+                    targetIconColor = Library.Scheme.BackgroundColor
+                elseif isHovered then
+                    targetBg = Library:GetLighterColor(Library.Scheme.MainColor) or Color3.fromRGB(45, 45, 50)
+                    targetStroke = Library.Scheme.AccentColor
+                    targetIconColor = Library.Scheme.AccentColor
+                end
+
+                TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = targetBg }):Play()
+                local stroke = btn:FindFirstChildOfClass("UIStroke")
+                if stroke then
+                    TweenService:Create(stroke, TweenInfo.new(0.12), { Color = targetStroke }):Play()
+                end
+                local icon = btn:FindFirstChild("Icon")
+                if icon then
+                    TweenService:Create(icon, TweenInfo.new(0.12), { ImageColor3 = targetIconColor }):Play()
+                end
+            end
+
+            btn.MouseEnter:Connect(function()
+                isHovered = true
+                updateVisual()
+            end)
+
+            btn.MouseLeave:Connect(function()
+                isHovered = false
+                updateVisual()
+            end)
+
+            if onClickCallback then
+                btn.MouseButton1Click:Connect(function()
+                    if useQueue then
+                        runInQueue(function()
+                            local dialog = onClickCallback()
+                            if dialog and typeof(dialog) == "table" and dialog.Container then
+                                isActive = true
+                                updateVisual()
+                                dialog.Container.Destroying:Connect(function()
+                                    isActive = false
+                                    updateVisual()
+                                end)
+                            end
+                        end)
+                    else
+                        local result = onClickCallback()
+                        if result and typeof(result) == "table" and result.Container then
+                            isActive = true
+                            updateVisual()
+                            result.Container.Destroying:Connect(function()
+                                isActive = false
+                                updateVisual()
+                            end)
+                        end
+                    end
+                end)
+            end
+
+            updateVisual()
+
+            return {
+                SetActive = function(state)
+                    isActive = state
+                    updateVisual()
+                end,
+                Refresh = updateVisual
+            }
+        end
+
+        local function checkBulkSelectState()
+            if not bulkSelectCtrl then return end
+            local allSelected = true
+            local selectableCount = 0
+            for name, card in pairs(AltList.Cards) do
+                if not card.CustomSettings.IsMain then
+                    local playerInGame = Players:FindFirstChild(name)
+                    local isOnline = playerInGame ~= nil
+                    local status = "Offline"
+                    if isOnline then
+                        status = "Online"
+                    end
+                    if Info.GetFarmingStatus then
+                        local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
+                        if success then
+                            if type(res) == "string" then
+                                status = res
+                            elseif type(res) == "boolean" and res then
+                                status = "Farming"
+                            end
+                        end
+                    end
+                    
+                    if status ~= "Offline" and status ~= "No Script" then
+                        selectableCount = selectableCount + 1
+                        if not AltList.SelectedAlts[name] then
+                            allSelected = false
+                        end
+                    end
+                end
+            end
+            if selectableCount > 0 then
+                selectAllState = allSelected
+                bulkSelectCtrl.SetActive(selectAllState)
+            else
+                selectAllState = false
+                bulkSelectCtrl.SetActive(false)
+            end
+        end
 
         local ListContainer = New("Frame", {
             Name = "AltListContainer",
@@ -4746,16 +4887,346 @@ do
             Parent = ListContainer,
         })
 
-        local AltList = {
+        local StatsContainer = nil
+        local statusLabels = {}
+        if Info.StatusOrder and #Info.StatusOrder > 0 then
+            StatsContainer = New("Frame", {
+                Name = "StatsContainer",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 24),
+                LayoutOrder = -15,
+                Parent = ListContainer,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Left,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 8),
+                Parent = StatsContainer,
+            })
+            
+            local function createBadge(name, color, labelText)
+                local badge = New("Frame", {
+                    Name = name .. "Badge",
+                    BackgroundColor3 = "MainColor",
+                    BackgroundTransparency = 0.7,
+                    AutomaticSize = Enum.AutomaticSize.XY,
+                    Parent = StatsContainer,
+                })
+                table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = badge }))
+                local stroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = badge })
+                Library:AddToRegistry(badge, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(stroke, { Color = "OutlineColor" })
+                
+                New("UIPadding", {
+                    PaddingLeft = UDim.new(0, 8),
+                    PaddingRight = UDim.new(0, 8),
+                    PaddingTop = UDim.new(0, 4),
+                    PaddingBottom = UDim.new(0, 4),
+                    Parent = badge,
+                })
+                
+                local dot = New("Frame", {
+                    Name = "Dot",
+                    Size = UDim2.fromOffset(6, 6),
+                    BackgroundColor3 = color,
+                    Parent = badge,
+                })
+                table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot }))
+                
+                local label = New("TextLabel", {
+                    Name = "Label",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.fromOffset(12, 0),
+                    AutomaticSize = Enum.AutomaticSize.XY,
+                    Font = Enum.Font.GothamMedium,
+                    TextSize = 10,
+                    Text = labelText,
+                    TextColor3 = "FontColor",
+                    Parent = badge,
+                })
+                Library:AddToRegistry(label, { TextColor3 = "FontColor" })
+                
+                New("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    VerticalAlignment = Enum.VerticalAlignment.Center,
+                    Padding = UDim.new(0, 6),
+                    Parent = badge,
+                })
+                
+                return label
+            end
+            
+            for _, statusName in ipairs(Info.StatusOrder) do
+                local color = Info.StatusColors[statusName] or Color3.fromRGB(150, 150, 150)
+                statusLabels[statusName] = createBadge(statusName, color, statusName .. ": 0")
+            end
+        end
+
+        local SearchBox = nil
+        local SearchBoxFrame = nil
+        if Info.Searchable then
+            SearchBoxFrame = New("Frame", {
+                Name = "SearchBoxFrame",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 32),
+                LayoutOrder = -5,
+                Parent = ListContainer,
+            })
+            
+            local SearchBoxInner = New("Frame", {
+                Name = "SearchBoxInner",
+                BackgroundColor3 = "MainColor",
+                Size = UDim2.new(1, -62, 0, 24),
+                Position = UDim2.fromOffset(0, 4),
+                Parent = SearchBoxFrame,
+            })
+            table.insert(Library.Corners, New("UICorner", {
+                CornerRadius = UDim.new(0, 4),
+                Parent = SearchBoxInner,
+            }))
+            local searchStroke = New("UIStroke", {
+                Color = "OutlineColor",
+                Thickness = 1,
+                ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                Parent = SearchBoxInner,
+            })
+            Library:AddToRegistry(SearchBoxInner, { BackgroundColor3 = "MainColor" })
+            Library:AddToRegistry(searchStroke, { Color = "OutlineColor" })
+            
+            SearchBox = New("TextBox", {
+                Name = "SearchBox",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -24, 1, 0),
+                Position = UDim2.fromOffset(8, 0),
+                PlaceholderText = "Search accounts...",
+                Text = "",
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = "FontColor",
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = SearchBoxInner,
+            })
+            
+            local searchIcon = New("ImageLabel", {
+                Name = "SearchIcon",
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position = UDim2.new(1, -6, 0.5, 0),
+                Size = UDim2.fromOffset(12, 12),
+                BackgroundTransparency = 1,
+                ImageColor3 = Library.Scheme.FontColor,
+                ImageTransparency = 0.5,
+                Parent = SearchBoxInner,
+            })
+            Library:AddToRegistry(searchIcon, { ImageColor3 = "FontColor" })
+            local searchIconData = Library:GetCustomIcon("search")
+            if searchIconData then
+                searchIcon.Image = searchIconData.Url
+                searchIcon.ImageRectOffset = searchIconData.ImageRectOffset
+                searchIcon.ImageRectSize = searchIconData.ImageRectSize
+            end
+
+            local BulkContainer = New("Frame", {
+                Name = "BulkContainer",
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -56, 0, 3),
+                Size = UDim2.fromOffset(56, 26),
+                Parent = SearchBoxFrame,
+            })
+            New("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Right,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 4),
+                Parent = BulkContainer,
+            })
+
+            local function createBulkBtn(iconName, tooltipText, callback)
+                local btn = New("ImageButton", {
+                    Name = iconName .. "BulkBtn",
+                    BackgroundColor3 = "MainColor",
+                    Size = UDim2.fromOffset(26, 26),
+                    Parent = BulkContainer,
+                })
+                table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = btn }))
+                local stroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = btn })
+                Library:AddToRegistry(btn, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(stroke, { Color = "OutlineColor" })
+                
+                local iconLabel = New("ImageLabel", {
+                    Name = "Icon",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(12, 12),
+                    Parent = btn,
+                })
+                
+                local iconData = Library:GetCustomIcon(iconName) or (iconName == "check" and Library:GetIcon("check"))
+                if iconData then
+                    iconLabel.Image = iconData.Url
+                    iconLabel.ImageRectOffset = iconData.ImageRectOffset
+                    iconLabel.ImageRectSize = iconData.ImageRectSize
+                    iconLabel.ImageColor3 = Library.Scheme.FontColor
+                    Library:AddToRegistry(iconLabel, { ImageColor3 = "FontColor" })
+                end
+                pcall(function()
+                    btn.MouseCursor = Enum.MouseCursor.PointingHand
+                end)
+                
+                local ctrl = registerPressColor(btn, callback, false)
+                return btn, ctrl
+            end
+
+            local selectAllBtn
+            selectAllBtn, bulkSelectCtrl = createBulkBtn("check", "Toggle Select All", function()
+                if not AltList then return end
+                selectAllState = not selectAllState
+                bulkSelectCtrl.SetActive(selectAllState)
+                getgenv().GaG2_BulkSelectActive = true
+                local lastSelectedAlt = nil
+                for altName, card in pairs(AltList.Cards) do
+                    if not card.CustomSettings.IsMain then
+                        local playerInGame = Players:FindFirstChild(altName)
+                        local isOnline = playerInGame ~= nil
+                        local status = "Offline"
+                        if isOnline then
+                            status = "Online"
+                        end
+                        if Info.GetFarmingStatus then
+                            local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
+                            if success then
+                                if type(res) == "string" then
+                                    status = res
+                                elseif type(res) == "boolean" and res then
+                                    status = "Farming"
+                                end
+                            end
+                        end
+                        if selectAllState and (status == "Offline" or status == "No Script") then
+                            AltList.SelectedAlts[altName] = nil
+                        else
+                            AltList.SelectedAlts[altName] = selectAllState and true or nil
+                            if selectAllState then
+                                lastSelectedAlt = card.AltInfo
+                            end
+                        end
+                        pcall(updateCardVisual, altName)
+                        pcall(Info.OnToggle, card.AltInfo, AltList.SelectedAlts[altName] or false)
+                    end
+                end
+                getgenv().GaG2_BulkSelectActive = false
+                pcall(updateStatsSummary)
+                pcall(checkBulkSelectState)
+                if selectAllState then
+                    if lastSelectedAlt and getgenv().GaG2_LoadProfile then
+                        pcall(getgenv().GaG2_LoadProfile, lastSelectedAlt.Name)
+                    end
+                else
+                    if getgenv().GaG2_LoadProfile then
+                        pcall(getgenv().GaG2_LoadProfile, "Main")
+                    end
+                end
+            end)
+
+            local bulkPauseBtn
+            bulkPauseBtn, bulkPauseCtrl = createBulkBtn("pause", "Toggle Pause/Resume Selected", function()
+                if not AltList then return end
+                bulkPauseState = not bulkPauseState
+                bulkPauseCtrl.SetActive(bulkPauseState)
+                getgenv().GaG2_BulkPauseActive = true
+                local count = 0
+                for altName, card in pairs(AltList.Cards) do
+                    if not card.CustomSettings.IsMain and AltList.SelectedAlts[altName] then
+                        pcall(Info.OnPause, card.AltInfo, bulkPauseState)
+                        count = count + 1
+                    end
+                end
+                getgenv().GaG2_BulkPauseActive = false
+                pcall(updateStatsSummary)
+                pcall(checkBulkSelectState)
+                for altName, card in pairs(AltList.Cards) do
+                    if not card.CustomSettings.IsMain and AltList.SelectedAlts[altName] then
+                        pcall(updateCardVisual, altName)
+                    end
+                end
+                local nextIcon = bulkPauseState and "play" or "pause"
+                local iconData = Library:GetCustomIcon(nextIcon)
+                if iconData and bulkPauseBtn then
+                    local iconLabel = bulkPauseBtn:FindFirstChild("Icon")
+                    if iconLabel then
+                        iconLabel.Image = iconData.Url
+                        iconLabel.ImageRectOffset = iconData.ImageRectOffset
+                        iconLabel.ImageRectSize = iconData.ImageRectSize
+                    end
+                end
+                if count > 0 then
+                    local actionStr = bulkPauseState and "Paused" or "Resumed"
+                    Library:Notify(actionStr .. " " .. count .. " selected accounts")
+                end
+            end)
+        end
+
+        AltList = {
             Accounts = Info.Accounts,
             SelectedAlts = Info.SelectedAlts,
             Cards = {},
             Type = "AltList",
+            HideIdentity = false,
         }
+
+        local function updateStatsSummary()
+            if not Info.StatusOrder or #Info.StatusOrder == 0 then return end
+            
+            local counts = {}
+            for _, statusName in ipairs(Info.StatusOrder) do
+                counts[statusName] = 0
+            end
+            
+            for altName, card in pairs(AltList.Cards) do
+                if card.CustomSettings.IsMain then
+                    if counts["Online"] then
+                        counts["Online"] = counts["Online"] + 1
+                    end
+                else
+                    local playerInGame = Players:FindFirstChild(card.AltInfo.Name)
+                    local isOnline = playerInGame ~= nil
+                    
+                    local status = "Offline"
+                    if isOnline then
+                        status = "Online"
+                    end
+                    if Info.GetFarmingStatus then
+                        local success, res = pcall(Info.GetFarmingStatus, card.AltInfo, isOnline)
+                        if success then
+                            if type(res) == "string" then
+                                status = res
+                            elseif type(res) == "boolean" and res then
+                                status = "Farming"
+                            end
+                        end
+                    end
+                    
+                    if counts[status] then
+                        counts[status] = counts[status] + 1
+                    end
+                    if status ~= "Offline" and counts["Online"] then
+                        counts["Online"] = counts["Online"] + 1
+                    end
+                end
+            end
+            
+            for statusName, label in pairs(statusLabels) do
+                label.Text = statusName .. ": " .. (counts[statusName] or 0)
+            end
+        end
 
         local function updateCardVisual(altName)
             local card = AltList.Cards[altName]
             if not card then return end
+            
+            local customSettings = card.CustomSettings or {}
+            local isMain = not not customSettings.IsMain
             
             local isSelected = AltList.SelectedAlts[altName]
             local playerInGame = Players:FindFirstChild(card.AltInfo.Name)
@@ -4776,35 +5247,104 @@ do
                 end
             end
             
-            if isSelected then
+            local displayName = card.AltInfo.Name
+            if AltList.HideIdentity then
+                displayName = "Hidden"
+            end
+            
+            if isSelected and not isMain then
                 card.Frame.BackgroundTransparency = 0.95
                 card.Frame.BackgroundColor3 = Library.Scheme.AccentColor
                 card.TextLabel.TextColor3 = Library.Scheme.AccentColor
-                card.TextLabel.Text = card.AltInfo.Name .. " (Controlling)"
+                card.TextLabel.Text = displayName .. " (Controlling)"
             else
-                card.Frame.BackgroundTransparency = 1
+                card.Frame.BackgroundColor3 = Library.Scheme.MainColor
+                card.Frame.BackgroundTransparency = 0.75
                 
-                if status == "Farming" then
-                    card.TextLabel.Text = card.AltInfo.Name .. " (Farming)"
-                    card.TextLabel.TextColor3 = Color3.fromRGB(240, 200, 0)
-                elseif status == "Paused" then
-                    card.TextLabel.Text = card.AltInfo.Name .. " (Paused)"
-                    card.TextLabel.TextColor3 = Color3.fromRGB(0, 180, 240)
-                elseif status == "Online" then
-                    card.TextLabel.Text = card.AltInfo.Name .. " (Online)"
-                    card.TextLabel.TextColor3 = Color3.fromRGB(0, 200, 100)
+                if isMain then
+                    card.TextLabel.Text = displayName .. " (Host)"
+                    card.TextLabel.TextColor3 = Library.Scheme.AccentColor
                 else
-                    card.TextLabel.Text = card.AltInfo.Name .. " (Offline)"
-                    card.TextLabel.TextColor3 = Color3.fromRGB(240, 70, 70)
+                    card.TextLabel.Text = displayName .. " (" .. status .. ")"
+                    local statusColor = Info.StatusColors and Info.StatusColors[status] or Color3.fromRGB(150, 150, 150)
+                    card.TextLabel.TextColor3 = statusColor
                 end
+            end
+
+            if isMain then
+                card.Frame.LayoutOrder = -10
+            else
+                local order = 0
+                if status == "Offline" then
+                    order = 20
+                elseif status == "No Script" then
+                    order = 10
+                end
+                card.Frame.LayoutOrder = order
+            end
+
+            local details = ""
+            if Info.GetAccountDetails then
+                local success, res = pcall(Info.GetAccountDetails, card.AltInfo, isMain)
+                if success and type(res) == "string" then
+                    details = res
+                end
+            end
+            
+            if card.SubLabel then
+                card.SubLabel.Text = details
+                card.SubLabel.Visible = details ~= ""
+            end
+            
+            if details == "" then
+                card.TextLabel.Size = UDim2.new(1, 0, 1, 0)
+                card.TextLabel.Position = UDim2.fromOffset(0, 0)
+            else
+                card.TextLabel.Size = UDim2.new(1, 0, 0, 16)
+                card.TextLabel.Position = UDim2.fromOffset(0, 4)
+            end
+            
+            if card.PauseBtn and card.PauseIconLabel then
+                local isPaused = (status == "Paused" or status == "Idle")
+                local pauseIconName = isPaused and "play" or "pause"
+                local iconData = Library:GetCustomIcon(pauseIconName)
+                if iconData then
+                    card.PauseIconLabel.Image = iconData.Url
+                    card.PauseIconLabel.ImageRectOffset = iconData.ImageRectOffset
+                    card.PauseIconLabel.ImageRectSize = iconData.ImageRectSize
+                    card.PauseIconLabel.ImageColor3 = Library.Scheme.FontColor
+                end
+            end
+
+            if not getgenv().GaG2_BulkSelectActive and not getgenv().GaG2_BulkPauseActive then
+                pcall(updateStatsSummary)
+                pcall(checkBulkSelectState)
             end
         end
 
-        function AltList:AddAccount(alt)
+        if SearchBox then
+            SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+                local query = SearchBox.Text:lower()
+                for altName, card in pairs(AltList.Cards) do
+                    local txt = card.TextLabel.Text:lower()
+                    local matches = altName:lower():find(query, 1, true) ~= nil or txt:find(query, 1, true) ~= nil
+                    card.Frame.Visible = matches
+                end
+                task.defer(function()
+                    Groupbox:Resize()
+                end)
+            end)
+        end
+
+        function AltList:AddAccount(alt, customSettings)
+            customSettings = customSettings or {}
+            
             local cardFrame = New("Frame", {
                 Name = alt.Name .. "Card",
-                Size = UDim2.new(1, 0, 0, 28),
-                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 40),
+                BackgroundColor3 = "MainColor",
+                BackgroundTransparency = 0.75,
+                LayoutOrder = customSettings.IsMain and -10 or 0,
                 Parent = ListContainer,
             })
             
@@ -4813,144 +5353,372 @@ do
                 Parent = cardFrame,
             })
             
+            local cardStroke = New("UIStroke", {
+                Color = "OutlineColor",
+                Thickness = 1,
+                ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                Parent = cardFrame,
+            })
+            
+            Library:AddToRegistry(cardFrame, { BackgroundColor3 = "MainColor" })
+            Library:AddToRegistry(cardStroke, { Color = "OutlineColor" })
+            
+            -- Avatar Headshot image centered vertically
+            local avatarImage = New("ImageLabel", {
+                Name = "Avatar",
+                Size = UDim2.fromOffset(26, 26),
+                Position = UDim2.fromOffset(6, 7),
+                BackgroundTransparency = 1,
+                Image = "rbxassetid://0",
+                Parent = cardFrame,
+            })
+            
+            local avatarCorner = New("UICorner", {
+                CornerRadius = UDim.new(1, 0),
+                Parent = avatarImage,
+            })
+            
+            if AltList.HideIdentity then
+                avatarImage.Image = CustomImageManager.GetAsset("PopCatSmirkClosed")
+            elseif alt.Id and tonumber(alt.Id) and tonumber(alt.Id) > 0 then
+                avatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(alt.Id) .. "&w=48&h=48"
+            else
+                local userIcon = Library:GetCustomIcon("user")
+                if userIcon then
+                    avatarImage.Image = userIcon.Url
+                    avatarImage.ImageRectOffset = userIcon.ImageRectOffset
+                    avatarImage.ImageRectSize = userIcon.ImageRectSize
+                    avatarImage.ImageColor3 = Library.Scheme.FontColor
+                    Library:AddToRegistry(avatarImage, { ImageColor3 = "FontColor" })
+                end
+            end
+            
+            -- Dynamically size based on allowed buttons
+            local showDelete = customSettings.AllowDelete
+            if showDelete == nil then showDelete = Info.AllowDelete end
+            
+            local showPause = customSettings.AllowPause
+            if showPause == nil then showPause = Info.AllowPause end
+            
+            local showCopy = customSettings.AllowCopyID
+            if showCopy == nil then showCopy = Info.AllowCopyID end
+            
+            local showStats = customSettings.AllowStats
+            if showStats == nil then showStats = not customSettings.IsMain end
+            
+            local rightOffset = -6
+            if showCopy then rightOffset = rightOffset - 30 end
+            if showDelete then rightOffset = rightOffset - 30 end
+            if showPause then rightOffset = rightOffset - 30 end
+            if showStats then rightOffset = rightOffset - 30 end
+            
+            local textContainer = New("Frame", {
+                Name = "TextContainer",
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(38, 0),
+                Size = UDim2.new(1, rightOffset - 38, 1, 0),
+                Parent = cardFrame,
+            })
+            
             local textLabel = New("TextLabel", {
                 Name = "Label",
                 BackgroundTransparency = 1,
-                Position = UDim2.fromOffset(8, 0),
-                Size = UDim2.new(1, -98, 1, 0),
+                Size = UDim2.new(1, 0, 1, 0),
                 Font = Enum.Font.GothamMedium,
-                TextSize = 12,
+                TextSize = 14,
                 TextColor3 = "FontColor",
                 TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = cardFrame,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = textContainer,
             })
             Library:AddToRegistry(textLabel, { TextColor3 = "FontColor" })
+
+            local subLabel = New("TextLabel", {
+                Name = "SubLabel",
+                BackgroundTransparency = 1,
+                Position = UDim2.fromOffset(0, 20),
+                Size = UDim2.new(1, 0, 0, 12),
+                Font = Enum.Font.Gotham,
+                TextSize = 10,
+                TextColor3 = "FontColor",
+                TextTransparency = 0.4,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = textContainer,
+            })
+            Library:AddToRegistry(subLabel, { TextColor3 = "FontColor" })
             
             local toggleBtn = New("TextButton", {
                 Name = "ToggleBtn",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, -92, 1, 0),
+                Size = UDim2.new(1, rightOffset, 1, 0),
                 Text = "",
                 Parent = cardFrame,
             })
+            pcall(function()
+                toggleBtn.MouseCursor = Enum.MouseCursor.PointingHand
+            end)
             
-            local deleteBtn = New("TextButton", {
-                Name = "DeleteBtn",
-                BackgroundColor3 = "MainColor",
-                Position = UDim2.new(1, -58, 0, 4),
-                Size = UDim2.fromOffset(24, 20),
-                Text = "X",
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = Library.Scheme.RedColor or Color3.fromRGB(240, 70, 70),
-                Parent = cardFrame,
-            })
+            local deleteBtn = nil
+            local copyBtn = nil
+            local pauseBtn = nil
+            local pauseIconLabel = nil
+            local statsBtn = nil
             
-            local deleteCorner = New("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = deleteBtn,
-            })
+            local btnXPos = -6
             
-            local deleteStroke = New("UIStroke", {
-                Color = "OutlineColor",
-                Thickness = 1,
-                Parent = deleteBtn,
-            })
+            if showCopy then
+                copyBtn = New("ImageButton", {
+                    Name = "CopyBtn",
+                    BackgroundColor3 = "MainColor",
+                    Position = UDim2.new(1, btnXPos - 26, 0.5, -13),
+                    Size = UDim2.fromOffset(26, 26),
+                    Parent = cardFrame,
+                })
+                
+                local copyCorner = New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = copyBtn })
+                local copyStroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = copyBtn })
+                
+                local iconLabel = New("ImageLabel", {
+                    Name = "Icon",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(14, 14),
+                    Parent = copyBtn,
+                })
+                
+                local copyIconData = Library:GetCustomIcon("copy")
+                if copyIconData then
+                    iconLabel.Image = copyIconData.Url
+                    iconLabel.ImageRectOffset = copyIconData.ImageRectOffset
+                    iconLabel.ImageRectSize = copyIconData.ImageRectSize
+                    iconLabel.ImageColor3 = Library.Scheme.FontColor
+                    Library:AddToRegistry(iconLabel, { ImageColor3 = "FontColor" })
+                end
+                
+                table.insert(Library.Corners, copyCorner)
+                Library:AddToRegistry(copyBtn, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(copyStroke, { Color = "OutlineColor" })
+                pcall(function() copyBtn.MouseCursor = Enum.MouseCursor.PointingHand end)
+                registerPressColor(copyBtn, function()
+                    pcall(Info.OnCopyID, alt)
+                end)
+                
+                btnXPos = btnXPos - 30
+            end
             
-            local copyBtn = New("TextButton", {
-                Name = "CopyBtn",
-                BackgroundColor3 = "MainColor",
-                Position = UDim2.new(1, -30, 0, 4),
-                Size = UDim2.fromOffset(24, 20),
-                Text = "ID",
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = "FontColor",
-                Parent = cardFrame,
-            })
+            if showDelete then
+                deleteBtn = New("ImageButton", {
+                    Name = "DeleteBtn",
+                    BackgroundColor3 = "MainColor",
+                    Position = UDim2.new(1, btnXPos - 26, 0.5, -13),
+                    Size = UDim2.fromOffset(26, 26),
+                    Parent = cardFrame,
+                })
+                
+                local deleteCorner = New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = deleteBtn })
+                local deleteStroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = deleteBtn })
+                
+                local iconLabel = New("ImageLabel", {
+                    Name = "Icon",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(14, 14),
+                    Parent = deleteBtn,
+                })
+                
+                local deleteIconData = Library:GetCustomIcon("trash-2") or Library:GetCustomIcon("trash") or Library:GetCustomIcon("x")
+                if deleteIconData then
+                    iconLabel.Image = deleteIconData.Url
+                    iconLabel.ImageRectOffset = deleteIconData.ImageRectOffset
+                    iconLabel.ImageRectSize = deleteIconData.ImageRectSize
+                    iconLabel.ImageColor3 = Library.Scheme.RedColor or Color3.fromRGB(240, 70, 70)
+                end
+                
+                table.insert(Library.Corners, deleteCorner)
+                Library:AddToRegistry(deleteBtn, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(deleteStroke, { Color = "OutlineColor" })
+                pcall(function() deleteBtn.MouseCursor = Enum.MouseCursor.PointingHand end)
+                registerPressColor(deleteBtn, function()
+                    local function doDelete()
+                        if cardFrame and cardFrame.Parent then
+                            cardFrame:Destroy()
+                        end
+                        AltList.Cards[alt.Name] = nil
+                        AltList.SelectedAlts[alt.Name] = nil
+                        task.defer(function()
+                            Groupbox:Resize()
+                        end)
+                    end
+                    if Info.OnDelete then
+                        local success, dialog = pcall(Info.OnDelete, alt, doDelete)
+                        if not success then
+                            warn("OnDelete failed: " .. tostring(dialog))
+                        end
+                        return dialog
+                    else
+                        doDelete()
+                    end
+                end, true)
+                
+                btnXPos = btnXPos - 30
+            end
             
-            local copyCorner = New("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = copyBtn,
-            })
-            
-            local copyStroke = New("UIStroke", {
-                Color = "OutlineColor",
-                Thickness = 1,
-                Parent = copyBtn,
-            })
+            if showPause then
+                pauseBtn = New("ImageButton", {
+                    Name = "PauseBtn",
+                    BackgroundColor3 = "MainColor",
+                    Position = UDim2.new(1, btnXPos - 26, 0.5, -13),
+                    Size = UDim2.fromOffset(26, 26),
+                    Parent = cardFrame,
+                })
+                
+                local pauseCorner = New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = pauseBtn })
+                local pauseStroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = pauseBtn })
+                
+                pauseIconLabel = New("ImageLabel", {
+                    Name = "Icon",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(14, 14),
+                    Parent = pauseBtn,
+                })
+                
+                table.insert(Library.Corners, pauseCorner)
+                Library:AddToRegistry(pauseBtn, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(pauseStroke, { Color = "OutlineColor" })
+                pcall(function() pauseBtn.MouseCursor = Enum.MouseCursor.PointingHand end)
+                registerPressColor(pauseBtn, function()
+                    pcall(Info.OnPause, alt)
+                    task.delay(0.1, function()
+                        pcall(updateCardVisual, alt.Name)
+                    end)
+                end)
+                
+                btnXPos = btnXPos - 30
+            end
 
-            local pauseBtn = New("TextButton", {
-                Name = "PauseBtn",
-                BackgroundColor3 = "MainColor",
-                Position = UDim2.new(1, -86, 0, 4),
-                Size = UDim2.fromOffset(24, 20),
-                Text = "⏸",
-                Font = Enum.Font.GothamBold,
-                TextSize = 10,
-                TextColor3 = "FontColor",
-                Parent = cardFrame,
-            })
-            
-            local pauseCorner = New("UICorner", {
-                CornerRadius = UDim.new(0, 4),
-                Parent = pauseBtn,
-            })
-            
-            local pauseStroke = New("UIStroke", {
-                Color = "OutlineColor",
-                Thickness = 1,
-                Parent = pauseBtn,
-            })
+            if showStats then
+                statsBtn = New("ImageButton", {
+                    Name = "StatsBtn",
+                    BackgroundColor3 = "MainColor",
+                    Position = UDim2.new(1, btnXPos - 26, 0.5, -13),
+                    Size = UDim2.fromOffset(26, 26),
+                    Parent = cardFrame,
+                })
+                
+                local configCorner = New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = statsBtn })
+                local configStroke = New("UIStroke", { Color = "OutlineColor", Thickness = 1, Parent = statsBtn })
+                
+                local iconLabel = New("ImageLabel", {
+                    Name = "Icon",
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.fromScale(0.5, 0.5),
+                    Size = UDim2.fromOffset(14, 14),
+                    Parent = statsBtn,
+                })
+                
+                local configIconData = Library:GetCustomIcon("chart-spline")
+                if configIconData then
+                    iconLabel.Image = configIconData.Url
+                    iconLabel.ImageRectOffset = configIconData.ImageRectOffset
+                    iconLabel.ImageRectSize = configIconData.ImageRectSize
+                    iconLabel.ImageColor3 = Library.Scheme.FontColor
+                    Library:AddToRegistry(iconLabel, { ImageColor3 = "FontColor" })
+                end
+                
+                table.insert(Library.Corners, configCorner)
+                Library:AddToRegistry(statsBtn, { BackgroundColor3 = "MainColor" })
+                Library:AddToRegistry(configStroke, { Color = "OutlineColor" })
+                pcall(function() statsBtn.MouseCursor = Enum.MouseCursor.PointingHand end)
+                registerPressColor(statsBtn, function()
+                    local success, dialog = pcall(Info.OnOpenStats, alt)
+                    if not success then
+                        warn("OnOpenStats failed: " .. tostring(dialog))
+                    end
+                    return dialog
+                end, true)
+                
+                btnXPos = btnXPos - 30
+            end
             
             table.insert(Library.Corners, cardCorner)
-            table.insert(Library.Corners, deleteCorner)
-            table.insert(Library.Corners, copyCorner)
-            table.insert(Library.Corners, pauseCorner)
-            Library:AddToRegistry(deleteBtn, { BackgroundColor3 = "MainColor" })
-            Library:AddToRegistry(deleteStroke, { Color = "OutlineColor" })
-            Library:AddToRegistry(copyBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
-            Library:AddToRegistry(copyStroke, { Color = "OutlineColor" })
-            Library:AddToRegistry(pauseBtn, { BackgroundColor3 = "MainColor", TextColor3 = "FontColor" })
-            Library:AddToRegistry(pauseStroke, { Color = "OutlineColor" })
+            table.insert(Library.Corners, avatarCorner)
             
             AltList.Cards[alt.Name] = {
                 Frame = cardFrame,
                 TextLabel = textLabel,
-                AltInfo = alt
+                SubLabel = subLabel,
+                AvatarImage = avatarImage,
+                PauseBtn = pauseBtn,
+                PauseIconLabel = pauseIconLabel,
+                StatsBtn = statsBtn,
+                AltInfo = alt,
+                CustomSettings = customSettings,
             }
             
-            toggleBtn.MouseButton1Click:Connect(function()
-                AltList.SelectedAlts[alt.Name] = not AltList.SelectedAlts[alt.Name]
-                updateCardVisual(alt.Name)
-                pcall(Info.OnToggle, alt, AltList.SelectedAlts[alt.Name])
-            end)
-            
-            deleteBtn.MouseButton1Click:Connect(function()
-                local function doDelete()
-                    if cardFrame and cardFrame.Parent then
-                        cardFrame:Destroy()
-                    end
-                    AltList.Cards[alt.Name] = nil
-                    AltList.SelectedAlts[alt.Name] = nil
-                    task.defer(function()
-                        Groupbox:Resize()
-                    end)
+            -- Hover animation
+            cardFrame.MouseEnter:Connect(function()
+                if not AltList.SelectedAlts[alt.Name] then
+                    TweenService:Create(cardFrame, TweenInfo.new(0.15), { BackgroundTransparency = 0.45 }):Play()
                 end
-                if Info.OnDelete then
-                    pcall(Info.OnDelete, alt, doDelete)
+            end)
+            cardFrame.MouseLeave:Connect(function()
+                if not AltList.SelectedAlts[alt.Name] then
+                    TweenService:Create(cardFrame, TweenInfo.new(0.15), { BackgroundTransparency = 0.75 }):Play()
                 else
-                    doDelete()
+                    TweenService:Create(cardFrame, TweenInfo.new(0.15), { BackgroundTransparency = 0.95 }):Play()
                 end
             end)
             
-            copyBtn.MouseButton1Click:Connect(function()
-                pcall(Info.OnCopyID, alt)
+            toggleBtn.MouseButton1Click:Connect(function()
+                local isOfflineAlert = false
+                if not customSettings.IsMain then
+                    local playerInGame = Players:FindFirstChild(alt.Name)
+                    local isOnline = playerInGame ~= nil
+                    local status = "Offline"
+                    if isOnline then
+                        status = "Online"
+                    end
+                    if Info.GetFarmingStatus then
+                        local success, res = pcall(Info.GetFarmingStatus, alt, isOnline)
+                        if success then
+                            if type(res) == "string" then
+                                status = res
+                            elseif type(res) == "boolean" and res then
+                                status = "Farming"
+                            end
+                        end
+                    end
+                    if status == "Offline" or status == "No Script" then
+                        isOfflineAlert = true
+                        runInQueue(function()
+                            if Info.OnOfflineAlert then
+                                pcall(Info.OnOfflineAlert, alt, status)
+                            else
+                                Library:Notify("User is currently offline or No Script")
+                            end
+                        end)
+                    end
+                end
+                
+                if not isOfflineAlert then
+                    AltList.SelectedAlts[alt.Name] = not AltList.SelectedAlts[alt.Name]
+                    updateCardVisual(alt.Name)
+                    pcall(Info.OnToggle, alt, AltList.SelectedAlts[alt.Name])
+                end
             end)
+            
 
-            pauseBtn.MouseButton1Click:Connect(function()
-                pcall(Info.OnPause, alt)
-            end)
+            
+            -- Apply search filter if active
+            if SearchBox and SearchBox.Text ~= "" then
+                cardFrame.Visible = alt.Name:lower():find(SearchBox.Text:lower(), 1, true) ~= nil
+            end
             
             updateCardVisual(alt.Name)
             task.defer(function()
@@ -4976,6 +5744,33 @@ do
                 end
             end
         end)
+
+        function AltList:SetHideIdentity(state)
+            AltList.HideIdentity = state
+            for altName, card in pairs(AltList.Cards) do
+                if card.AvatarImage then
+                    if state then
+                        card.AvatarImage.Image = CustomImageManager.GetAsset("PopCatSmirkClosed")
+                        card.AvatarImage.ImageRectOffset = Vector2.zero
+                        card.AvatarImage.ImageRectSize = Vector2.zero
+                    else
+                        if card.AltInfo.Id and tonumber(card.AltInfo.Id) and tonumber(card.AltInfo.Id) > 0 then
+                            card.AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(card.AltInfo.Id) .. "&w=48&h=48"
+                            card.AvatarImage.ImageRectOffset = Vector2.zero
+                            card.AvatarImage.ImageRectSize = Vector2.zero
+                        else
+                            local userIcon = Library:GetCustomIcon("user")
+                            if userIcon then
+                                card.AvatarImage.Image = userIcon.Url
+                                card.AvatarImage.ImageRectOffset = userIcon.ImageRectOffset
+                                card.AvatarImage.ImageRectSize = userIcon.ImageRectSize
+                            end
+                        end
+                    end
+                end
+                pcall(updateCardVisual, altName)
+            end
+        end
 
         if Idx then
             Library.Options[Idx] = AltList
@@ -11517,39 +12312,41 @@ function Library:CreateWindow(WindowInfo)
                 end
             end
 
-            table.insert(Actions, {
-                Name = "Search UI",
-                Icon = "search",
-                Func = function()
-                    local ViewportSize = workspace.CurrentCamera.ViewportSize
-                    local IsLeftHalf = FABContainer.AbsolutePosition.X < ViewportSize.X / 2
-                    if IsLeftHalf then
-                        SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X + 60, 0, FABContainer.AbsolutePosition.Y + 6)
-                    else
-                        SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X - 192, 0, FABContainer.AbsolutePosition.Y + 6)
-                    end
-                    SearchContainer.Visible = not SearchContainer.Visible
-                    if SearchContainer.Visible then
-                        justOpenedSearch = true
-                        task.defer(function()
-                            justOpenedSearch = false
-                        end)
-                        Library:Toggle(true)
-                        task.defer(function()
-                            SearchInput:CaptureFocus()
-                        end)
-                        if SearchInput.Text ~= "" and RunSearch then
-                            RunSearch(SearchInput.Text)
+            if not (Library.ActiveTab and Library.ActiveTab.IsKeyTab) then
+                table.insert(Actions, {
+                    Name = "Search UI",
+                    Icon = "search",
+                    Func = function()
+                        local ViewportSize = workspace.CurrentCamera.ViewportSize
+                        local IsLeftHalf = FABContainer.AbsolutePosition.X < ViewportSize.X / 2
+                        if IsLeftHalf then
+                            SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X + 60, 0, FABContainer.AbsolutePosition.Y + 6)
+                        else
+                            SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X - 192, 0, FABContainer.AbsolutePosition.Y + 6)
                         end
-                    else
-                        if SearchInput.Text ~= "" then
-                            SearchInput.Text = ""
+                        SearchContainer.Visible = not SearchContainer.Visible
+                        if SearchContainer.Visible then
+                            justOpenedSearch = true
+                            task.defer(function()
+                                justOpenedSearch = false
+                            end)
+                            Library:Toggle(true)
+                            task.defer(function()
+                                SearchInput:CaptureFocus()
+                            end)
+                            if SearchInput.Text ~= "" and RunSearch then
+                                RunSearch(SearchInput.Text)
+                            end
+                        else
+                            if SearchInput.Text ~= "" then
+                                SearchInput.Text = ""
+                            end
+                            ResetFadeTimer()
                         end
-                        ResetFadeTimer()
+                        UpdateMenu(false)
                     end
-                    UpdateMenu(false)
-                end
-            })
+                })
+            end
 
             if InfoTabObject then
                 table.insert(Actions, {
@@ -12849,7 +13646,7 @@ function Library:Prompt(Info)
     local Overlay = New("TextButton", {
         AutoButtonColor = false,
         BackgroundColor3 = "DarkColor",
-        BackgroundTransparency = 0.5,
+        BackgroundTransparency = 1,
         Size = UDim2.fromScale(1, 1),
         Text = "",
         Active = true,
@@ -13055,6 +13852,7 @@ function Library:Prompt(Info)
             end
         end)
     end
+    return screenGui
 end
 
 print("bobcat")
