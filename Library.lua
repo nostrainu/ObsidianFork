@@ -9392,7 +9392,9 @@ function Library:CreateWindow(WindowInfo)
 
         SidebarBottom = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
-            BackgroundTransparency = 1,
+            BackgroundColor3 = "BackgroundColor",
+            BackgroundTransparency = 0,
+            BorderSizePixel = 0,
             Position = UDim2.new(0, 0, 1, -21),
             Size = UDim2.new(0, InitialLeftWidth, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
@@ -9687,6 +9689,23 @@ function Library:CreateWindow(WindowInfo)
         local TabMiddle
 
         Icon = Library:GetCustomIcon(Icon)
+        if Side == "SidebarBottom" and not SidebarBottom:FindFirstChild("Divider") then
+            local DividerFrame = New("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30),
+                LayoutOrder = 0,
+                Name = "Divider",
+                Parent = SidebarBottom,
+            })
+            New("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = "OutlineColor",
+                Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.new(1, -24, 0, 1),
+                BorderSizePixel = 0,
+                Parent = DividerFrame,
+            })
+        end
         do
             if Side == "Footer" then
                 if Icon then
@@ -9717,6 +9736,7 @@ function Library:CreateWindow(WindowInfo)
                 TabButton = New("TextButton", {
                     BackgroundColor3 = "MainColor",
                     BackgroundTransparency = 1,
+                    LayoutOrder = Side == "SidebarBottom" and 1 or 0,
                     Size = UDim2.new(1, 0, 0, 40),
                     Text = "",
                     Parent = (Side == "SidebarBottom" or Side == "Header") and SidebarBottom or Tabs,
