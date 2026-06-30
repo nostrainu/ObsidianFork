@@ -9053,7 +9053,7 @@ function Library:CreateWindow(WindowInfo)
     local CurrentTabLabel
     local CurrentTabDescription
     local ResizeButton
-    local Tabs, SidebarBottom
+    local Tabs, SidebarBottom, SidebarBackground
     local Container
     local BackgroundImage
     local BottomBackground, BottomBar, BottomLine
@@ -9386,13 +9386,24 @@ function Library:CreateWindow(WindowInfo)
         })
 
         --// Tabs \\--
+        SidebarBackground = New("Frame", {
+            BackgroundColor3 = "BackgroundColor",
+            BorderSizePixel = 0,
+            Position = UDim2.fromOffset(0, 49),
+            Size = UDim2.new(0, InitialLeftWidth, 1, -49),
+            ZIndex = 1,
+            Parent = MainFrame,
+        })
+
         Tabs = New("ScrollingFrame", {
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = "BackgroundColor",
+            BackgroundTransparency = 1,
             CanvasSize = UDim2.fromScale(0, 0),
             Position = UDim2.fromOffset(0, 49),
             ScrollBarThickness = 0,
             Size = UDim2.new(0, InitialLeftWidth, 1, -70),
+            ZIndex = 2,
             Parent = MainFrame,
         })
         New("UIListLayout", {
@@ -9402,11 +9413,12 @@ function Library:CreateWindow(WindowInfo)
         SidebarBottom = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = "BackgroundColor",
-            BackgroundTransparency = 0,
+            BackgroundTransparency = 1,
             BorderSizePixel = 0,
             Position = UDim2.fromScale(0, 1),
             Size = UDim2.new(0, InitialLeftWidth, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = 2,
             Parent = MainFrame,
         })
         New("UIListLayout", {
@@ -9613,6 +9625,9 @@ function Library:CreateWindow(WindowInfo)
 
         TitleHolder.Size = UDim2.new(0, Width, 1, 0)
         RightWrapper.Size = UDim2.new(1, -Width - (MoveIcon and 78 or 44) - 1, 1, -16)
+        if SidebarBackground then
+            SidebarBackground.Size = UDim2.new(0, Width, 1, -49)
+        end
         if SidebarBottom then
             SidebarBottom.Size = UDim2.new(0, Width, 0, 0)
         end
