@@ -5172,18 +5172,42 @@ do
             end
         end
 
-        local ListContainer = New("Frame", {
+        local ListContainer = New("ScrollingFrame", {
             Name = "AltListContainer",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
+            ScrollBarThickness = 0,
+            CanvasSize = UDim2.fromScale(0, 0),
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
             Parent = Container,
         })
-        New("UIListLayout", {
+        Library:AddToRegistry(ListContainer, { ScrollBarImageColor3 = "OutlineColor" })
+
+        local ListPadding = New("UIPadding", {
+            PaddingRight = UDim.new(0, 0),
+            Parent = ListContainer,
+        })
+
+        local ListLayout = New("UIListLayout", {
             Padding = UDim.new(0, 8),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = ListContainer,
         })
+
+        ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            local contentHeight = ListLayout.AbsoluteContentSize.Y
+            local maxHeight = 232 -- Max height for 5 accounts
+            local finalHeight = math.min(contentHeight, maxHeight)
+            ListContainer.Size = UDim2.new(1, 0, 0, finalHeight)
+            ListContainer.ScrollingEnabled = contentHeight > maxHeight
+            if contentHeight > maxHeight then
+                ListPadding.PaddingRight = UDim.new(0, 6)
+                ListContainer.ScrollBarThickness = 3
+            else
+                ListPadding.PaddingRight = UDim.new(0, 0)
+                ListContainer.ScrollBarThickness = 0
+            end
+        end)
 
         local StatsContainer = nil
         local statusLabels = {}
