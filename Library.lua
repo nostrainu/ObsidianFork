@@ -5034,6 +5034,8 @@ do
             GetAccountDetails = function(alt, isMain) return "" end,
             StatusColors = {},
             StatusOrder = {},
+            MaxVisible = 5,
+            CardHeight = 40,
             Visible = true,
         })
 
@@ -5196,7 +5198,11 @@ do
 
         ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             local contentHeight = ListLayout.AbsoluteContentSize.Y
-            local maxHeight = 232 -- Max height for 5 accounts
+            local cardHeight = Info.CardHeight
+            local padding = ListLayout.Padding.Offset
+            local maxVisible = Info.MaxVisible
+            
+            local maxHeight = (cardHeight * maxVisible) + (padding * math.max(0, maxVisible - 1))
             local finalHeight = math.min(contentHeight, maxHeight)
             ListContainer.Size = UDim2.new(1, 0, 0, finalHeight)
             ListContainer.ScrollingEnabled = contentHeight > maxHeight
