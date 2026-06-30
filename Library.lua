@@ -9426,7 +9426,7 @@ function Library:CreateWindow(WindowInfo)
             Parent = SidebarBottom,
         })
         New("UIPadding", {
-            PaddingBottom = UDim.new(0, 21),
+            PaddingBottom = UDim.new(0, 8),
             Parent = SidebarBottom,
         })
 
@@ -9735,6 +9735,7 @@ function Library:CreateWindow(WindowInfo)
             New("Frame", {
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 BackgroundColor3 = "OutlineColor",
+                BackgroundTransparency = 0.5,
                 Position = UDim2.fromScale(0.5, 0.5),
                 Size = UDim2.new(1, -24, 0, 1),
                 BorderSizePixel = 0,
