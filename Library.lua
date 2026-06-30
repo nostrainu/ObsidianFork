@@ -5193,7 +5193,6 @@ do
             Size = UDim2.new(1, 0, 0, 0),
             ScrollBarThickness = 0,
             CanvasSize = UDim2.fromScale(0, 0),
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
             LayoutOrder = 0,
             Parent = ListContainer,
         })
@@ -5219,6 +5218,7 @@ do
             local maxHeight = (cardHeight * maxVisible) + (padding * math.max(0, maxVisible - 1))
             local finalHeight = math.min(contentHeight, maxHeight)
             AltsScrollingFrame.Size = UDim2.new(1, 0, 0, finalHeight)
+            AltsScrollingFrame.CanvasSize = UDim2.fromOffset(0, contentHeight)
             AltsScrollingFrame.ScrollingEnabled = contentHeight > maxHeight
             if contentHeight > maxHeight then
                 AltsPadding.PaddingRight = UDim.new(0, 6)
