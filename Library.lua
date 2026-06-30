@@ -4565,7 +4565,7 @@ do
             Visible = false,
         })
 
-        local ButtonRowHeight = 47
+        local ButtonRowHeight = 54
 
         local ButtonsHolder = New("Frame", {
             BackgroundTransparency = 1,
@@ -4738,7 +4738,7 @@ do
             local lbl = New("TextLabel", {
                 Name = "Label",
                 Size = UDim2.new(1, 0, 0, 12),
-                Position = UDim2.new(0, 0, 0, 26),
+                Position = UDim2.new(0, 0, 0, 28),
                 BackgroundTransparency = 1,
                 Text = BtnInfo.Name,
                 TextSize = 10,
@@ -5180,7 +5180,7 @@ do
             Parent = Container,
         })
         New("UIListLayout", {
-            Padding = UDim.new(0, 4),
+            Padding = UDim.new(0, 8),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = ListContainer,
         })
@@ -5267,7 +5267,7 @@ do
             SearchBoxFrame = New("Frame", {
                 Name = "SearchBoxFrame",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 32),
+                Size = UDim2.new(1, 0, 0, 42),
                 LayoutOrder = -5,
                 Parent = ListContainer,
             })
@@ -5275,8 +5275,8 @@ do
             local SearchBoxInner = New("Frame", {
                 Name = "SearchBoxInner",
                 BackgroundColor3 = "MainColor",
-                Size = UDim2.new(1, -62, 0, 24),
-                Position = UDim2.fromOffset(0, 4),
+                Size = UDim2.new(1, -74, 0, 32),
+                Position = UDim2.fromOffset(0, 5),
                 Parent = SearchBoxFrame,
             })
             table.insert(Library.Corners, New("UICorner", {
@@ -5295,7 +5295,7 @@ do
             SearchBox = New("TextBox", {
                 Name = "SearchBox",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, -24, 1, 0),
+                Size = UDim2.new(1, -28, 1, 0),
                 Position = UDim2.fromOffset(8, 0),
                 PlaceholderText = "Search accounts...",
                 Text = "",
@@ -5310,7 +5310,7 @@ do
                 Name = "SearchIcon",
                 AnchorPoint = Vector2.new(1, 0.5),
                 Position = UDim2.new(1, -6, 0.5, 0),
-                Size = UDim2.fromOffset(12, 12),
+                Size = UDim2.fromOffset(14, 14),
                 BackgroundTransparency = 1,
                 ImageColor3 = Library.Scheme.FontColor,
                 ImageTransparency = 0.5,
@@ -5327,8 +5327,8 @@ do
             local BulkContainer = New("Frame", {
                 Name = "BulkContainer",
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -56, 0, 3),
-                Size = UDim2.fromOffset(56, 26),
+                Position = UDim2.new(1, -68, 0, 5),
+                Size = UDim2.fromOffset(68, 32),
                 Parent = SearchBoxFrame,
             })
             New("UIListLayout", {
@@ -5343,7 +5343,7 @@ do
                 local btn = New("ImageButton", {
                     Name = iconName .. "BulkBtn",
                     BackgroundColor3 = "MainColor",
-                    Size = UDim2.fromOffset(26, 26),
+                    Size = UDim2.fromOffset(32, 32),
                     Parent = BulkContainer,
                 })
                 table.insert(Library.Corners, New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = btn }))
@@ -5356,7 +5356,7 @@ do
                     BackgroundTransparency = 1,
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.fromScale(0.5, 0.5),
-                    Size = UDim2.fromOffset(12, 12),
+                    Size = UDim2.fromOffset(14, 14),
                     Parent = btn,
                 })
                 
