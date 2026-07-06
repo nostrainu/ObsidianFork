@@ -1,14 +1,14 @@
-local cloneref = (cloneref or clonereference or function(instance: any) 
+local cloneref = (cloneref or clonereference or function(instance) 
     return instance
 end)
-local CoreGui: CoreGui = cloneref(game:GetService("CoreGui"))
-local Players: Players = cloneref(game:GetService("Players"))
-local RunService: RunService = cloneref(game:GetService("RunService"))
-local SoundService: SoundService = cloneref(game:GetService("SoundService"))
-local UserInputService: UserInputService = cloneref(game:GetService("UserInputService"))
-local TextService: TextService = cloneref(game:GetService("TextService"))
-local Teams: Teams = cloneref(game:GetService("Teams"))
-local TweenService: TweenService = cloneref(game:GetService("TweenService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local Players = cloneref(game:GetService("Players"))
+local RunService = cloneref(game:GetService("RunService"))
+local SoundService = cloneref(game:GetService("SoundService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local TextService = cloneref(game:GetService("TextService"))
+local Teams = cloneref(game:GetService("Teams"))
+local TweenService = cloneref(game:GetService("TweenService"))
 
 local getgenv = getgenv or function()
     return shared
