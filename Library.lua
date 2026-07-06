@@ -20,7 +20,7 @@ local gethui = gethui or function()
 end
 
 local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local Mouse = cloneref(LocalPlayer:GetMouse())
+local Mouse = cloneref(LocalPlayer:GetMouse and LocalPlayer:GetMouse() or Instance.new("Mouse"))
 
 local Labels = {}
 local Buttons = {}
