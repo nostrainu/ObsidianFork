@@ -3935,6 +3935,18 @@ do
             Data.DoesWrap = Params.DoesWrap or false
             Data.Size = Params.Size or 14
             Data.Visible = Params.Visible or true
+            Data.Style = Params.Style
+            Data.Type = Params.Type
+            Data.Color = Params.Color
+            Data.Badge = Params.Badge
+            Data.BadgeColor = Params.BadgeColor
+            Data.BadgeTextColor = Params.BadgeTextColor
+            Data.BadgeSize = Params.BadgeSize or 11
+            Data.BadgeFont = Params.BadgeFont or Enum.Font.GothamBold
+            local defaultFont = Library.Scheme.Font or Font.fromEnum(Enum.Font.GothamMedium)
+            Data.Font = Params.Font or defaultFont
+            Data.DescFont = Params.DescFont or Params.Font or defaultFont
+            Data.DescSize = Params.DescSize or (Data.Size - 1)
             Data.Idx = typeof(Second) == "table" and First or nil
         else
             Data.Text = First or ""
@@ -3957,72 +3969,241 @@ do
             Type = "Label",
         }
 
-        local TextLabel = New("TextLabel", {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 18),
-            Text = Label.Text,
-            TextSize = Data.Size,
-            TextWrapped = Label.DoesWrap,
-            TextXAlignment = Groupbox.IsKeyTab and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
-            Parent = Container,
-        })
+        local CardFrame
+        local CardColorBar
+        local BadgeLabel, TitleLabel, DescLabel, renderDescription
+
+        if Data.Style == "Card" then
+            local cardColorMap = {
+                Info = Color3.fromRGB(59, 130, 246),
+                Success = Color3.fromRGB(34, 197, 94),
+                Warning = Color3.fromRGB(249, 115, 22),
+                Error = Color3.fromRGB(239, 68, 68),
+                Default = Library.Scheme.OutlineColor,
+            }
+            local cardColor = Data.Color or cardColorMap[Data.Type] or cardColorMap.Default
+
+            CardFrame = New("Frame", {
+                BackgroundColor3 = Library.Scheme.MainColor,
+                BackgroundTransparency = 0.5,
+                ClipsDescendants = true,
+                Size = Data.Badge and UDim2.new(1, 0, 0, 0) or UDim2.new(1, 0, 0, 30),
+                AutomaticSize = Data.Badge and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,
+                Parent = Container,
+            })
+            New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CardFrame })
+            New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Transparency = 0.5, Parent = CardFrame })
+            CardColorBar = New("Frame", {
+                BackgroundColor3 = cardColor,
+                BorderSizePixel = 0,
+                Size = UDim2.new(0, 4, 1, 0),
+                Parent = CardFrame,
+            })
+
+            if Data.Badge then
+                local titleText, descText
+                local firstNewline = Label.Text:find("\n")
+                if firstNewline then
+                    titleText = Label.Text:sub(1, firstNewline - 1)
+                    descText = Label.Text:sub(firstNewline + 1)
+                else
+                    titleText = Label.Text
+                    descText = ""
+                end
+
+                New("UIPadding", {
+                    PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0),
+                    PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+                    Parent = CardFrame,
+                })
+
+                local CardContent = New("Frame", {
+                    Name = "CardContent",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 12, 0, 0),
+                    Size = UDim2.new(1, -24, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = CardFrame,
+                })
+                New("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4), Parent = CardContent })
+
+                local badgeText = Data.Badge
+                local sizeMultiplier = Data.BadgeSize / 11
+                local badgeWidth = 16 * sizeMultiplier
+                for i = 1, #badgeText do
+                    local char = badgeText:sub(i, i)
+                    if char == " " then badgeWidth = badgeWidth + 4 * sizeMultiplier
+                    elseif char:match("%u") then badgeWidth = badgeWidth + 8 * sizeMultiplier
+                    else badgeWidth = badgeWidth + 6 * sizeMultiplier end
+                end
+
+                local HeaderFrame = New("Frame", {
+                    Name = "HeaderFrame", BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+                    LayoutOrder = 1, Parent = CardContent,
+                })
+                local BadgeFrame = New("Frame", {
+                    Name = "BadgeFrame",
+                    BackgroundColor3 = Data.BadgeColor or cardColor,
+                    Size = UDim2.new(0, badgeWidth, 0, Data.BadgeSize + 9),
+                    Parent = HeaderFrame,
+                })
+                New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = BadgeFrame })
+                BadgeLabel = New("TextLabel", {
+                    BackgroundTransparency = 1, Text = Data.Badge,
+                    TextColor3 = Data.BadgeTextColor or Color3.new(1, 1, 1),
+                    TextSize = Data.BadgeSize, Font = Data.BadgeFont,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    TextXAlignment = Enum.TextXAlignment.Center,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    Parent = BadgeFrame,
+                })
+
+                local titleFontProp = (typeof(Data.Font) == "Font" or typeof(Data.Font) == "FontFace") and "FontFace" or "Font"
+                local descFontProp = (typeof(Data.DescFont) == "Font" or typeof(Data.DescFont) == "FontFace") and "FontFace" or "Font"
+
+                TitleLabel = New("TextLabel", {
+                    BackgroundTransparency = 1, Text = titleText,
+                    TextColor3 = Library.Scheme.FontColor, TextSize = Data.Size,
+                    [titleFontProp] = Data.Font, TextWrapped = true,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Position = UDim2.new(0, badgeWidth + 6, 0, 0),
+                    Size = UDim2.new(1, -badgeWidth - 6, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y, Parent = HeaderFrame,
+                })
+
+                local function parseDescription(dText)
+                    local rows = {}
+                    for line in dText:gmatch("[^\r\n]+") do
+                        if line:match("%S") then
+                            local name, value = line:match("^%s*•%s*<b>(.-):</b>%s*(.*)$")
+                            if name and value then
+                                table.insert(rows, { Type = "Bullet", Title = "• " .. name .. ":", Value = value })
+                            else
+                                table.insert(rows, { Type = "Text", Value = line })
+                            end
+                        end
+                    end
+                    return rows
+                end
+
+                renderDescription = function(dText)
+                    for _, child in CardContent:GetChildren() do
+                        if child:IsA("Frame") and child.Name == "RowFrame" then child:Destroy() end
+                    end
+                    local rows = parseDescription(dText)
+                    for idx, row in ipairs(rows) do
+                        local RowFrame = New("Frame", {
+                            Name = "RowFrame", BackgroundTransparency = 1,
+                            Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+                            LayoutOrder = idx + 1, Parent = CardContent,
+                        })
+                        if row.Type == "Bullet" then
+                            local tw = row.Title
+                            local sm = Data.DescSize / 13
+                            local tw2 = 0
+                            for i = 1, #tw do
+                                local c = tw:sub(i, i)
+                                if c == "•" or c == " " then tw2 = tw2 + 5 * sm
+                                elseif c:match("%u") or c == "w" or c == "m" then tw2 = tw2 + 8 * sm
+                                elseif c == "i" or c == "l" or c == "t" or c == ":" or c == "f" or c == "r" then tw2 = tw2 + 4 * sm
+                                else tw2 = tw2 + 6 * sm end
+                            end
+                            tw2 = tw2 + 4
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Title, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Size = UDim2.new(0, tw2, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Value, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Position = UDim2.new(0, tw2, 0, 0), Size = UDim2.new(1, -tw2, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                        else
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Value, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                        end
+                    end
+                end
+                renderDescription(descText)
+            end
+        end
+
+        local TextLabel
+        if not Data.Badge then
+            TextLabel = New("TextLabel", {
+                BackgroundTransparency = 1,
+                Position = Data.Style == "Card" and UDim2.new(0, 12, 0, 6) or UDim2.fromScale(0, 0),
+                Size = Data.Style == "Card" and UDim2.new(1, -24, 1, -12) or UDim2.new(1, 0, 0, 18),
+                Text = Label.Text,
+                TextSize = Data.Size,
+                TextWrapped = Label.DoesWrap,
+                TextXAlignment = Groupbox.IsKeyTab and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
+                Parent = CardFrame or Container,
+            })
+        end
 
         function Label:SetVisible(Visible: boolean)
             Label.Visible = Visible
-
-            TextLabel.Visible = Label.Visible
+            if TextLabel then TextLabel.Visible = Label.Visible end
+            if CardFrame then CardFrame.Visible = Label.Visible end
             Groupbox:Resize()
+        end
+
+        function Label:SetColor(Color: Color3)
+            if CardColorBar then CardColorBar.BackgroundColor3 = Color end
         end
 
         function Label:SetText(Text: string)
             Label.Text = Text
-            TextLabel.Text = Text
-
-            if Label.DoesWrap then
-                local _, Y =
-                    Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-                TextLabel.Size = UDim2.new(1, 0, 0, Y + 4)
+            if BadgeLabel then
+                local titleText, descText
+                local firstNewline = Text:find("\n")
+                if firstNewline then
+                    titleText = Text:sub(1, firstNewline - 1)
+                    descText = Text:sub(firstNewline + 1)
+                else
+                    titleText = Text
+                    descText = ""
+                end
+                TitleLabel.Text = titleText
+                renderDescription(descText)
+            else
+                TextLabel.Text = Text
+                if Label.DoesWrap then
+                    local _, Y = Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                    TextLabel.Size = Data.Style == "Card" and UDim2.new(1, -24, 0, Y) or UDim2.new(1, 0, 0, Y + 4)
+                    if CardFrame then CardFrame.Size = UDim2.new(1, 0, 0, Y + 12) end
+                end
             end
-
             Groupbox:Resize()
         end
 
-        if Label.DoesWrap then
-            local _, Y =
-                Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-            TextLabel.Size = UDim2.new(1, 0, 0, Y + 4)
-
-            local Last = TextLabel.AbsoluteSize
-            TextLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-                if TextLabel.AbsoluteSize == Last then
-                    return
-                end
-
-                local _, Y =
-                    Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-                TextLabel.Size = UDim2.new(1, 0, 0, Y + 4)
-
-                Last = TextLabel.AbsoluteSize
-                Groupbox:Resize()
-            end)
-        else
-            New("UIListLayout", {
-                FillDirection = Enum.FillDirection.Horizontal,
-                HorizontalAlignment = Enum.HorizontalAlignment.Right,
-                Padding = UDim.new(0, 6),
-                Parent = TextLabel,
-            })
+        if not Data.Badge then
+            if Label.DoesWrap then
+                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                TextLabel.Size = Data.Style == "Card" and UDim2.new(1, -24, 0, Y) or UDim2.new(1, 0, 0, Y + 4)
+                if CardFrame then CardFrame.Size = UDim2.new(1, 0, 0, Y + 12) end
+                local Last = TextLabel.AbsoluteSize
+                TextLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+                    if TextLabel.AbsoluteSize == Last then return end
+                    local _, Y = Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                    TextLabel.Size = Data.Style == "Card" and UDim2.new(1, -24, 0, Y) or UDim2.new(1, 0, 0, Y + 4)
+                    if CardFrame then CardFrame.Size = UDim2.new(1, 0, 0, Y + 12) end
+                    Last = TextLabel.AbsoluteSize
+                    Groupbox:Resize()
+                end)
+            else
+                New("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    HorizontalAlignment = Enum.HorizontalAlignment.Right,
+                    Padding = UDim.new(0, 6),
+                    Parent = TextLabel,
+                })
+            end
         end
 
         Groupbox:Resize()
 
-        Label.TextLabel = TextLabel
+        Label.TextLabel = TitleLabel or TextLabel
         Label.Container = Container
         if not Data.DoesWrap then
             setmetatable(Label, BaseAddons)
         end
 
-        Label.Holder = TextLabel
+        Label.Holder = CardFrame or TextLabel
         table.insert(Groupbox.Elements, Label)
 
         if Data.Idx then
