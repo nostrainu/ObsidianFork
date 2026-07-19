@@ -697,7 +697,16 @@ local function Round(Value, Rounding)
 end
 
 local function GetPlayers(ExcludeLocalPlayer: boolean?)
-    local PlayerList = Players:GetPlayers()
+    local PlayerList
+    pcall(function()
+        PlayerList = game:GetService("Players"):GetPlayers()
+    end)
+    if not PlayerList then
+        pcall(function()
+            PlayerList = Players:GetPlayers()
+        end)
+    end
+    PlayerList = PlayerList or {}
 
     if ExcludeLocalPlayer then
         local Idx = table.find(PlayerList, LocalPlayer)
@@ -707,16 +716,29 @@ local function GetPlayers(ExcludeLocalPlayer: boolean?)
     end
 
     table.sort(PlayerList, function(Player1, Player2)
-        return Player1.Name:lower() < Player2.Name:lower()
+        local name1 = Player1 and Player1.Name or ""
+        local name2 = Player2 and Player2.Name or ""
+        return name1:lower() < name2:lower()
     end)
 
     return PlayerList
 end
 local function GetTeams()
-    local TeamList = Teams:GetTeams()
+    local TeamList
+    pcall(function()
+        TeamList = game:GetService("Teams"):GetTeams()
+    end)
+    if not TeamList then
+        pcall(function()
+            TeamList = Teams:GetTeams()
+        end)
+    end
+    TeamList = TeamList or {}
 
     table.sort(TeamList, function(Team1, Team2)
-        return Team1.Name:lower() < Team2.Name:lower()
+        local name1 = Team1 and Team1.Name or ""
+        local name2 = Team2 and Team2.Name or ""
+        return name1:lower() < name2:lower()
     end)
 
     return TeamList
