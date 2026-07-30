@@ -1205,7 +1205,7 @@ local FetchIcons, Icons = pcall(function()
 end)
 
 function Library:GetIcon(IconName: string)
-    if not FetchIcons then
+    if not FetchIcons or not Icons or type(Icons) ~= "table" or type(Icons.GetAsset) ~= "function" then
         return
     end
 
