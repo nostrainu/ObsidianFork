@@ -1691,12 +1691,26 @@ end
 function Library:MakeLine(Frame: GuiObject, Info)
     local Line = New("Frame", {
         AnchorPoint = Info.AnchorPoint or Vector2.zero,
-        BackgroundColor3 = "OutlineColor",
+        BackgroundColor3 = Info.Color or "OutlineColor",
+        BorderSizePixel = 0,
         Position = Info.Position,
         Size = Info.Size,
         ZIndex = Info.ZIndex or Frame.ZIndex,
         Parent = Frame,
     })
+
+    if Info.FadeEdges or Info.Fade then
+        New("UIGradient", {
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.12, 0.2),
+                NumberSequenceKeypoint.new(0.5, 0),
+                NumberSequenceKeypoint.new(0.88, 0.2),
+                NumberSequenceKeypoint.new(1, 1),
+            }),
+            Parent = Line,
+        })
+    end
 
     return Line
 end
@@ -3535,33 +3549,57 @@ do
             local X, _ = Library:GetTextBounds(Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
             local SizeX = X // 2 + 10
 
-            New("Frame", {
+            local LeftLine = New("Frame", {
                 AnchorPoint = Vector2.new(0, 0.5),
-                BackgroundColor3 = "MainColor",
-                BorderColor3 = "OutlineColor",
-                BorderSizePixel = 1,
+                BackgroundColor3 = "OutlineColor",
+                BorderSizePixel = 0,
                 Position = UDim2.fromScale(0, 0.5),
-                Size = UDim2.new(0.5, -SizeX, 0, 2),
+                Size = UDim2.new(0.5, -SizeX, 0, 1),
                 Parent = InnerHolder,
             })
-            New("Frame", {
+            New("UIGradient", {
+                Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 1),
+                    NumberSequenceKeypoint.new(0.3, 0.15),
+                    NumberSequenceKeypoint.new(1, 0),
+                }),
+                Parent = LeftLine,
+            })
+
+            local RightLine = New("Frame", {
                 AnchorPoint = Vector2.new(1, 0.5),
-                BackgroundColor3 = "MainColor",
-                BorderColor3 = "OutlineColor",
-                BorderSizePixel = 1,
+                BackgroundColor3 = "OutlineColor",
+                BorderSizePixel = 0,
                 Position = UDim2.fromScale(1, 0.5),
-                Size = UDim2.new(0.5, -SizeX, 0, 2),
+                Size = UDim2.new(0.5, -SizeX, 0, 1),
                 Parent = InnerHolder,
+            })
+            New("UIGradient", {
+                Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 0),
+                    NumberSequenceKeypoint.new(0.7, 0.15),
+                    NumberSequenceKeypoint.new(1, 1),
+                }),
+                Parent = RightLine,
             })
         else
-            New("Frame", {
-                AnchorPoint = Vector2.new(0, 0.5),
-                BackgroundColor3 = "MainColor",
-                BorderColor3 = "OutlineColor",
-                BorderSizePixel = 1,
-                Position = UDim2.fromScale(0, 0.5),
-                Size = UDim2.new(1, 0, 0, 2),
+            local CenterLine = New("Frame", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = "OutlineColor",
+                BorderSizePixel = 0,
+                Position = UDim2.fromScale(0.5, 0.5),
+                Size = UDim2.new(1, 0, 0, 1),
                 Parent = InnerHolder,
+            })
+            New("UIGradient", {
+                Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 1),
+                    NumberSequenceKeypoint.new(0.12, 0.2),
+                    NumberSequenceKeypoint.new(0.5, 0),
+                    NumberSequenceKeypoint.new(0.88, 0.2),
+                    NumberSequenceKeypoint.new(1, 1),
+                }),
+                Parent = CenterLine,
             })
         end
 
@@ -3577,6 +3615,222 @@ do
 
         table.insert(Groupbox.Elements, Divider)
         return Divider
+    end
+
+    function Funcs:AddBanner(...)
+        local Config = select(1, ...)
+        if typeof(Config) == "string" then
+            Config = { Title = Config }
+        end
+        Config = Config or {}
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local TitleText = Config.Title or Config.Text or "Notice"
+        local BannerColor = Config.Color or Config.StatusColor or Library.Scheme.AccentColor
+        local Items = Config.Items or Config.Lines or Config.Options or {}
+
+        local CardFrame = New("Frame", {
+            BackgroundColor3 = Config.BackgroundColor or Library.Scheme.BackgroundColor,
+            BackgroundTransparency = Config.BackgroundTransparency or 0.25,
+            ClipsDescendants = true,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = Container,
+        })
+        New("UICorner", {
+            CornerRadius = UDim.new(0, Config.CornerRadius or 8),
+            Parent = CardFrame,
+        })
+        local CardStroke = New("UIStroke", {
+            Color = Color3.fromRGB(255, 255, 255),
+            Thickness = 1,
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            Parent = CardFrame,
+        })
+        local StrokeGradient = New("UIGradient", {
+            Rotation = 90,
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, BannerColor),
+                ColorSequenceKeypoint.new(0.5, Library:GetDarkerColor(BannerColor)),
+                ColorSequenceKeypoint.new(1, Library.Scheme.OutlineColor)
+            }),
+            Parent = CardStroke,
+        })
+        New("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10),
+            Parent = CardFrame,
+        })
+
+        local CardContent = New("Frame", {
+            Name = "CardContent",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = CardFrame,
+        })
+        New("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 6),
+            Parent = CardContent,
+        })
+
+        local HeaderFrame = New("Frame", {
+            Name = "HeaderFrame",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 18),
+            LayoutOrder = 1,
+            Parent = CardContent,
+        })
+        New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 8),
+            Parent = HeaderFrame,
+        })
+
+        local StatusDot = New("Frame", {
+            Name = "StatusDot",
+            Size = UDim2.fromOffset(8, 8),
+            BackgroundColor3 = BannerColor,
+            BorderSizePixel = 0,
+            Parent = HeaderFrame,
+        })
+        New("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = StatusDot,
+        })
+
+        local TitleLabel = New("TextLabel", {
+            AutomaticSize = Enum.AutomaticSize.XY,
+            BackgroundTransparency = 1,
+            FontFace = Font.new(Library.Font, Enum.FontWeight.Bold),
+            Text = TitleText,
+            TextColor3 = Library.Scheme.FontColor,
+            TextSize = 14,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = HeaderFrame,
+        })
+
+        local TitleDivider = New("Frame", {
+            Name = "TitleDivider",
+            Size = UDim2.new(1, 0, 0, 1),
+            BackgroundColor3 = BannerColor,
+            BorderSizePixel = 0,
+            LayoutOrder = 2,
+            Parent = CardContent,
+        })
+        New("UIGradient", {
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.12, 0.2),
+                NumberSequenceKeypoint.new(0.5, 0),
+                NumberSequenceKeypoint.new(0.88, 0.2),
+                NumberSequenceKeypoint.new(1, 1),
+            }),
+            Parent = TitleDivider,
+        })
+
+        local ItemsContainer = New("Frame", {
+            Name = "ItemsContainer",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            LayoutOrder = 3,
+            Parent = CardContent,
+        })
+        New("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4),
+            Parent = ItemsContainer,
+        })
+
+        local function RenderItems(itemsList)
+            for _, child in ItemsContainer:GetChildren() do
+                if child:IsA("TextLabel") or child:IsA("Frame") then
+                    child:Destroy()
+                end
+            end
+            for idx, itemText in ipairs(itemsList) do
+                local cleanText = tostring(itemText)
+                if not cleanText:match("^%s*•") then
+                    cleanText = "• " .. cleanText
+                end
+                New("TextLabel", {
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    BackgroundTransparency = 1,
+                    FontFace = Font.new(Library.Font, Enum.FontWeight.Medium),
+                    LayoutOrder = idx,
+                    RichText = true,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    Text = cleanText,
+                    TextColor3 = Library.Scheme.FontColor,
+                    TextSize = 13.5,
+                    TextWrapped = true,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Top,
+                    Parent = ItemsContainer,
+                })
+            end
+            Groupbox:Resize()
+        end
+
+        RenderItems(Items)
+
+        local Banner = {
+            Frame = CardFrame,
+            TitleLabel = TitleLabel,
+            StatusDot = StatusDot,
+            Divider = TitleDivider,
+            ItemsContainer = ItemsContainer,
+            Type = "Banner",
+        }
+
+        function Banner:SetTitle(newTitle)
+            TitleLabel.Text = tostring(newTitle)
+            Groupbox:Resize()
+        end
+
+        function Banner:SetColor(newColor)
+            BannerColor = newColor
+            StatusDot.BackgroundColor3 = newColor
+            TitleDivider.BackgroundColor3 = newColor
+            StrokeGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, newColor),
+                ColorSequenceKeypoint.new(0.5, Library:GetDarkerColor(newColor)),
+                ColorSequenceKeypoint.new(1, Library.Scheme.OutlineColor)
+            })
+        end
+
+        function Banner:SetItems(newItems)
+            Items = newItems or {}
+            RenderItems(Items)
+        end
+        Banner.SetLines = Banner.SetItems
+
+        function Banner:AddItem(itemText)
+            table.insert(Items, itemText)
+            RenderItems(Items)
+        end
+
+        function Banner:Clear()
+            Items = {}
+            RenderItems(Items)
+        end
+
+        function Banner:SetVisible(visible)
+            CardFrame.Visible = visible
+            Groupbox:Resize()
+        end
+
+        Groupbox:Resize()
+        table.insert(Groupbox.Elements, Banner)
+        return Banner
     end
 
     function Funcs:AddLabel(...)
@@ -9016,11 +9270,11 @@ function Library:CreateWindow(WindowInfo)
     WindowInfo = Library:Validate(WindowInfo, Templates.Window)
     local Themes = {
         Bobcat = {
-            BackgroundColor = Color3.fromRGB(15, 12, 19),
-            MainColor = Color3.fromRGB(36, 27, 46),
-            AccentColor = Color3.fromRGB(240, 140, 165),
-            OutlineColor = Color3.fromRGB(85, 64, 110),
-            FontColor = Color3.fromRGB(240, 235, 245),
+            BackgroundColor = Color3.fromRGB(15, 14, 19),
+            MainColor = Color3.fromRGB(24, 21, 32),
+            AccentColor = Color3.fromRGB(255, 133, 151),
+            OutlineColor = Color3.fromRGB(46, 40, 56),
+            FontColor = Color3.fromRGB(245, 237, 230),
         },
     }
     if typeof(WindowInfo.Theme) == "string" and Themes[WindowInfo.Theme] then
@@ -9136,8 +9390,9 @@ function Library:CreateWindow(WindowInfo)
             Parent = OutStroke
         })
         HeaderLine = Library:MakeLine(MainFrame, {
-            Position = UDim2.new(0, 8, 0, 84),
-            Size = UDim2.new(1, -16, 0, 2),
+            AnchorPoint = Vector2.new(0.5, 0),
+            Position = UDim2.new(0.5, 0, 0, 84),
+            Size = UDim2.new(1, -16, 0, 1.5),
             ZIndex = 3,
         })
         HeaderLine.BackgroundColor3 = Library.Scheme.AccentColor
@@ -9181,9 +9436,33 @@ function Library:CreateWindow(WindowInfo)
             MainFrame.Position = UDim2.new(0.5, -MainFrame.Size.X.Offset / 2, 0.5, -MainFrame.Size.Y.Offset / 2)
         end
 
+        local TopBarBackground = New("Frame", {
+            BackgroundColor3 = Library.Scheme.MainColor,
+            BackgroundTransparency = 0.45,
+            BorderSizePixel = 0,
+            Position = UDim2.fromScale(0, 0),
+            Size = UDim2.new(1, 0, 0, 84),
+            ZIndex = 1,
+            Parent = MainFrame,
+        })
+        New("UICorner", {
+            CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
+            Parent = TopBarBackground,
+        })
+        New("UIGradient", {
+            Rotation = 90,
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0.4),
+                NumberSequenceKeypoint.new(0.65, 0.7),
+                NumberSequenceKeypoint.new(1, 1),
+            }),
+            Parent = TopBarBackground,
+        })
+
         local TopBar = New("Frame", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 48),
+            ZIndex = 2,
             Parent = MainFrame,
         })
         TopBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -9216,7 +9495,7 @@ function Library:CreateWindow(WindowInfo)
             FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 8),
             Parent = TitleHolder,
         })
 
@@ -9224,10 +9503,23 @@ function Library:CreateWindow(WindowInfo)
         WindowIcon = New("ImageLabel", {
             BackgroundTransparency = 1,
             Image = IconAsset,
-            Size = WindowInfo.IconSize or UDim2.fromOffset(20, 20),
+            Size = WindowInfo.IconSize or UDim2.fromOffset(22, 22),
             Parent = TitleHolder,
         })
         Library.WindowIcon = WindowIcon
+
+        local WindowTitleLabel = New("TextLabel", {
+            AutomaticSize = Enum.AutomaticSize.XY,
+            BackgroundTransparency = 1,
+            FontFace = Font.new(Library.Font, Enum.FontWeight.SemiBold),
+            Text = WindowInfo.Title or "Bobcat",
+            TextColor3 = "FontColor",
+            TextSize = 15,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Parent = TitleHolder,
+        })
+        Library.WindowTitleLabel = WindowTitleLabel
 
         RightWrapper = New("Frame", {
             AnchorPoint = Vector2.new(1, 0.5),
@@ -9313,6 +9605,37 @@ function Library:CreateWindow(WindowInfo)
         })
 
 
+        local InfoIcon = Library:GetIcon("info")
+        if InfoIcon then
+            local InfoButton = New("ImageButton", {
+                BackgroundTransparency = 1,
+                Image = InfoIcon.Url,
+                ImageColor3 = "FontColor",
+                ImageRectOffset = InfoIcon.ImageRectOffset,
+                ImageRectSize = InfoIcon.ImageRectSize,
+                ImageTransparency = 0.5,
+                Size = UDim2.fromOffset(20, 20),
+                Parent = HeaderButtons,
+            })
+
+            Library:AddToRegistry(InfoButton, {
+                ImageColor3 = "FontColor",
+            })
+
+            InfoButton.MouseEnter:Connect(function()
+                TweenService:Create(InfoButton, Library.TweenInfo, { ImageTransparency = 0.25 }):Play()
+            end)
+            InfoButton.MouseLeave:Connect(function()
+                TweenService:Create(InfoButton, Library.TweenInfo, { ImageTransparency = 0.5 }):Play()
+            end)
+            InfoButton.MouseButton1Click:Connect(function()
+                local InfoTab = Library.Tabs["Info"]
+                if InfoTab then
+                    InfoTab:Show()
+                end
+            end)
+        end
+
         local SettingsIcon = Library:GetIcon("settings")
         if SettingsIcon then
             local SettingsButton = New("ImageButton", {
@@ -9344,55 +9667,15 @@ function Library:CreateWindow(WindowInfo)
             end)
         end
 
-        BottomBackground = New("Frame", {
-            AnchorPoint = Vector2.new(0, 1),
-            BackgroundColor3 = function()
-                return Library:GetBetterColor(Library.Scheme.BackgroundColor, 4)
-            end,
-            Position = UDim2.new(0, 0, 1, 0),
-            Size = UDim2.new(1, 0, 0, 20 + WindowInfo.CornerRadius),
-            Parent = MainFrame
-        })
-        BottomLine = Library:MakeLine(MainFrame, {
-            AnchorPoint = Vector2.new(0, 1),
-            Position = UDim2.new(0, 0, 1, -20),
-            Size = UDim2.new(1, 0, 0, 1),
-            ZIndex = 3,
-        })
-
-        BottomBar = New("Frame", {
-            AnchorPoint = Vector2.new(0, 1),
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 0, 1, 0),
-            Size = UDim2.new(1, 0, 0, 20),
-            Parent = MainFrame,
-        })
-        table.insert(
-            Library.Corners,
-            New("UICorner", {
-                CornerRadius = UDim.new(0, WindowInfo.CornerRadius),
-                Parent = BottomBackground,
-            })
-        )
-
-        FooterLabel = New("TextLabel", {
-            BackgroundTransparency = 1,
-            Size = UDim2.fromScale(1, 1),
-            Text = WindowInfo.Footer,
-            TextSize = 14,
-            TextTransparency = 0.5,
-            Parent = BottomBar,
-        })
-
         if WindowInfo.Resizable then
             ResizeButton = New("TextButton", {
-                AnchorPoint = Vector2.new(1, 0),
+                AnchorPoint = Vector2.new(1, 1),
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -WindowInfo.CornerRadius / 4, 0, 0),
-                Size = UDim2.fromScale(1, 1),
-                SizeConstraint = Enum.SizeConstraint.RelativeYY,
+                Position = UDim2.new(1, -2, 1, -2),
+                Size = UDim2.fromOffset(16, 16),
                 Text = "",
-                Parent = BottomBar,
+                ZIndex = 10,
+                Parent = MainFrame,
             })
 
             Library:MakeResizable(MainFrame, ResizeButton, function()
@@ -9401,17 +9684,6 @@ function Library:CreateWindow(WindowInfo)
                 end
             end)
         end
-
-        New("ImageLabel", {
-            Image = ResizeIcon and ResizeIcon.Url or "",
-            ImageColor3 = "FontColor",
-            ImageRectOffset = ResizeIcon and ResizeIcon.ImageRectOffset or Vector2.zero,
-            ImageRectSize = ResizeIcon and ResizeIcon.ImageRectSize or Vector2.zero,
-            ImageTransparency = 0.5,
-            Position = UDim2.fromOffset(2, 2),
-            Size = UDim2.new(1, -4, 1, -4),
-            Parent = ResizeButton,
-        })
 
         Tabs = New("ScrollingFrame", {
             AnchorPoint = Vector2.new(0.5, 0.5),
@@ -9434,18 +9706,10 @@ function Library:CreateWindow(WindowInfo)
         })
 
         local FooterTabs = New("Frame", {
-            AnchorPoint = Vector2.new(1, 0),
             BackgroundTransparency = 1,
-            Position = UDim2.new(1, WindowInfo.Resizable and -24 or -6, 0, 0),
-            Size = UDim2.new(0, 0, 1, 0),
-            AutomaticSize = Enum.AutomaticSize.X,
-            Parent = BottomBar,
-        })
-        New("UIListLayout", {
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Left,
-            Padding = UDim.new(0, 6),
-            Parent = FooterTabs,
+            Size = UDim2.new(0, 0, 0, 0),
+            Visible = false,
+            Parent = MainFrame,
         })
 
         Container = New("Frame", {
@@ -9453,7 +9717,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = "MainColor",
             Name = "Container",
             Position = UDim2.new(0.5, 0, 0, 88),
-            Size = UDim2.new(1, -16, 1, -114),
+            Size = UDim2.new(1, -16, 1, -96),
             ClipsDescendants = true,
             Parent = MainFrame,
         })
@@ -9484,10 +9748,14 @@ function Library:CreateWindow(WindowInfo)
         assert(typeof(title) == "string", "Expected string for title got: " .. typeof(title))
 
         WindowInfo.Title = title
+        if WindowTitleLabel then
+            WindowTitleLabel.Text = title
+        end
         if FooterLabel then
             FooterLabel.Text = title
         end
     end
+    Window.SetTitle = Window.ChangeTitle
 
     if WindowInfo.BackgroundImage then
         function Window:SetBackgroundImage(Image: string)
@@ -9501,14 +9769,18 @@ function Library:CreateWindow(WindowInfo)
     function Window:SetFooter(footer: string)
         assert(typeof(footer) == "string", "Expected string for footer got: " .. typeof(footer))
 
-        FooterLabel.Text = footer
+        if FooterLabel then
+            FooterLabel.Text = footer
+        end
         WindowInfo.Footer = footer
     end
 
     function Window:SetStatus(status: string)
         assert(typeof(status) == "string", "Expected string for status got: " .. typeof(status))
 
-        FooterLabel.Text = status
+        if FooterLabel then
+            FooterLabel.Text = status
+        end
         WindowInfo.Footer = status
     end
 
@@ -9527,8 +9799,12 @@ function Library:CreateWindow(WindowInfo)
         Library.CornerRadius = Radius
         WindowInfo.CornerRadius = Radius
 
-        ResizeButton.Position = UDim2.new(1, -Radius / 4, 0, 0)
-        BottomBackground.Size = UDim2.new(1, 0, 0, 20 + Radius)
+        if ResizeButton then
+            ResizeButton.Position = UDim2.new(1, -2, 1, -2)
+        end
+        if BottomBackground then
+            BottomBackground.Size = UDim2.new(1, 0, 0, 20 + Radius)
+        end
 
         for _, Tab in Library.Tabs do
             for _, Tabbox in Tab.Tabboxes do
@@ -10040,6 +10316,24 @@ function Library:CreateWindow(WindowInfo)
             Tab:RefreshSides()
         end
 
+        function Tab:AddBanner(...)
+            local Config = select(1, ...)
+            if typeof(Config) == "string" then
+                Config = { Title = Config }
+            end
+            Config = Config or {}
+            local Side = Config.Side or 3
+            local Container = Tab:GetSideContainer(Side)
+            local DummyGroup = {
+                Container = Container,
+                Elements = {},
+                Resize = function() Tab:Resize() end,
+            }
+            local banner = Funcs.AddBanner(DummyGroup, Config)
+            table.insert(Tab.Groupboxes, banner)
+            return banner
+        end
+
         function Tab:AddGroupbox(Info)
             local ParentContainer = Tab:GetSideContainer(Info.Side)
             local BoxHolder = New("Frame", {
@@ -10087,6 +10381,7 @@ function Library:CreateWindow(WindowInfo)
                 GroupboxDivider = Library:MakeLine(GroupboxHolder, {
                     Position = UDim2.fromOffset(0, 34),
                     Size = UDim2.new(1, 0, 0, 1),
+                    FadeEdges = true,
                 })
 
                 local BoxIcon = Library:GetCustomIcon(Info.IconName)
@@ -10123,10 +10418,14 @@ function Library:CreateWindow(WindowInfo)
                     BackgroundTransparency = 1,
                     Size = UDim2.fromScale(1, 1),
                     Text = Info.Name,
+                    TextColor3 = "AccentColor",
                     TextSize = 15,
                     TextXAlignment = Info.Center and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
                     TextTruncate = Enum.TextTruncate.AtEnd,
                     Parent = LabelContainer,
+                })
+                Library:AddToRegistry(GroupboxLabel, {
+                    TextColor3 = "AccentColor",
                 })
                 local SidePadding = 12
                 if Info.Center then
