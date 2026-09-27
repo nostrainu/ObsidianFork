@@ -3708,8 +3708,7 @@ do
         local TitleLabel = New("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.XY,
             BackgroundTransparency = 1,
-            FontFace = Font.new(Library.Font, Enum.FontWeight.Bold),
-            Text = TitleText,
+            Text = "<b>" .. TitleText .. "</b>",
             TextColor3 = Library.Scheme.FontColor,
             TextSize = 14,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -3764,7 +3763,6 @@ do
                 New("TextLabel", {
                     AutomaticSize = Enum.AutomaticSize.Y,
                     BackgroundTransparency = 1,
-                    FontFace = Font.new(Library.Font, Enum.FontWeight.Medium),
                     LayoutOrder = idx,
                     RichText = true,
                     Size = UDim2.new(1, 0, 0, 0),
@@ -9511,8 +9509,7 @@ function Library:CreateWindow(WindowInfo)
         local WindowTitleLabel = New("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.XY,
             BackgroundTransparency = 1,
-            FontFace = Font.new(Library.Font, Enum.FontWeight.SemiBold),
-            Text = WindowInfo.Title or "Bobcat",
+            Text = "<b>" .. (WindowInfo.Title or "Bobcat") .. "</b>",
             TextColor3 = "FontColor",
             TextSize = 15,
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -9749,7 +9746,7 @@ function Library:CreateWindow(WindowInfo)
 
         WindowInfo.Title = title
         if WindowTitleLabel then
-            WindowTitleLabel.Text = title
+            WindowTitleLabel.Text = "<b>" .. title .. "</b>"
         end
         if FooterLabel then
             FooterLabel.Text = title
