@@ -9547,6 +9547,12 @@ function Library:CreateWindow(WindowInfo)
         CurrentTabInfo.Visible = false
     end
 
+    function Window:AddTabSection(Name: string?)
+        return {
+            SetText = function(self, newName) end,
+            SetVisible = function(self, visible) end,
+        }
+    end
 
     function Window:AddTab(...)
         local Name = nil
