@@ -1,0 +1,15 @@
+{
+  "name": "Obsidian",
+  "tree": {
+    "$className": "Folder",
+    "Library": {
+      "$path": "Library.lua"
+    },
+    "SaveManager": {
+      "$path": "addons/SaveManager.lua"
+    },
+    "ThemeManager": {
+      "$path": "addons/ThemeManager.lua"
+    }
+  }
+}
