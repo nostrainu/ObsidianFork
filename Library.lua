@@ -33,7 +33,7 @@ local CustomImageManager = {}
 local CustomImageManagerAssets = {
     TransparencyTexture = {
         RobloxId = 139785960036434,
-        Path = "yy/assets/TransparencyTexture.png",
+        Path = "BobCat/Assets/TransparencyTexture.png",
         URL = BaseURL .. "assets/TransparencyTexture.png",
 
         Id = nil,
@@ -41,56 +41,24 @@ local CustomImageManagerAssets = {
 
     SaturationMap = {
         RobloxId = 4155801252,
-        Path = "yy/assets/SaturationMap.png",
+        Path = "BobCat/Assets/SaturationMap.png",
         URL = BaseURL .. "assets/SaturationMap.png",
-
-        Id = nil,
-    },
-
-    LoadingIcon = {
-        RobloxId = 97544096941083,
-        Path = "yy/assets/LoadingIcon.png",
-        URL = BaseURL .. "assets/LoadingIcon.png",
 
         Id = nil,
     },
 
     CheckIcon = {
         RobloxId = 97682394690683,
-        Path = "yy/assets/CheckIcon.png",
+        Path = "BobCat/Assets/CheckIcon.png",
         URL = BaseURL .. "assets/CheckIcon.png",
 
         Id = nil,
     },
 
-    PopCatIdleClosed = {
-        RobloxId = 0,
-        Path = "yy/assets/pop_cat_idle_closed.png",
-        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_idle_closed.png",
-
-        Id = nil,
-    },
-
-    PopCatOpen = {
-        RobloxId = 0,
-        Path = "yy/assets/pop_cat_open.png",
-        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_open.png",
-
-        Id = nil,
-    },
-
-    PopCatSmirkClosed = {
-        RobloxId = 0,
-        Path = "yy/assets/pop_cat_smirk_closed.png",
-        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_smirk_closed.png",
-
-        Id = nil,
-    },
-
-    PopCatDonut = {
-        RobloxId = 0,
-        Path = "yy/assets/pop_cat_donut.png",
-        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/pop_cat_donut.png",
+    BobcatLogo = {
+        RobloxId = 104430511950805,
+        Path = "BobCat/Assets/bobcatdc.png",
+        URL = "https://raw.githubusercontent.com/nostrainu/Dump/main/Assets/bobcatdc.png",
 
         Id = nil,
     },
@@ -133,7 +101,7 @@ do
 
         CustomImageManagerAssets[AssetName] = {
             RobloxId = RobloxAssetId,
-            Path = string.format("yy/assets/%s", AssetName),
+            Path = string.format("BobCat/Assets/%s", AssetName),
             URL = URL,
 
             Id = nil,
@@ -243,7 +211,6 @@ local Library = {
 
     Notifications = {},
     Dialogues = {},
-    ActiveLoading = nil,
     ActiveDialog = nil,
 
     Corners = {},
@@ -377,29 +344,16 @@ local Templates = {
         NotifySide = "Right",
         Font = Enum.Font.GothamMedium,
         ToggleKeybind = Enum.KeyCode.RightControl,
-        
+        Theme = "Default",
+        FloatingButton = false,
+        ShowFloatingButton = false,
+        FloatingIcon = nil,
+
         ShowMobileButtons = true,
         MobileButtonsSide = "Left",
         DisableFloatingMenu = false,
 
-        PopCatDimensions = Vector2.new(418, 418),
-
         UnlockMouseWhileOpen = true,
-
-        EnableSidebarResize = false,
-        EnableCompacting = true,
-        DisableCompactingSnap = false,
-        SidebarCompacted = false,
-        SideBarText = false,
-        MinContainerWidth = 256,
-
-        --// Snapping \\--
-        MinSidebarWidth = 128,
-        SidebarCompactWidth = 48,
-        SidebarCollapseThreshold = 0.5,
-
-        --// Dragging \\--
-        CompactWidthActivation = 128,
     },
     Dialog = {
         Title = "Dialog",
@@ -407,29 +361,6 @@ local Templates = {
         AutoDismiss = true,
         OutsideClickDismiss = true,
         FooterButtons = {}
-    },
-    Loading = {
-        Title = "mspaint",
-        Icon = 95816097006870,
-        IconSize = UDim2.fromOffset(30, 30),
-
-        LoadingIcon = CustomImageManager.GetAsset("LoadingIcon"),
-        LoadingIconColor = nil,
-        LoadingIconTweenTime = 1,
-
-        CurrentStep = 0,
-        TotalSteps = 10,
-
-        ShowSidebar = false,
-        AutoResizeHeight = false,
-
-        WindowWidth = 450,
-        WindowHeight = 275,
-
-        ContentWidth = 450,
-        SidebarWidth = 250,
-
-        AutoInitialize = true,
     },
     Toggle = {
         Text = "Toggle",
@@ -2057,7 +1988,7 @@ function Library:AddContextMenu(
 )
     local Menu
     local ParentGui = Holder:FindFirstAncestorOfClass("ScreenGui")
-    if ParentGui ~= ScreenGui and (Library.ActiveLoading and ParentGui ~= Library.ActiveLoading.ScreenGui) then
+    if ParentGui ~= ScreenGui then
         ParentGui = ScreenGui
     end
 
@@ -2294,7 +2225,7 @@ function Library:AddTooltip(InfoStr: string, DisabledInfoStr: string, HoverInsta
         CurrentHoverInstance = HoverInstance
 
         local ParentGui = HoverInstance:FindFirstAncestorOfClass("ScreenGui")
-        if ParentGui ~= ScreenGui and (Library.ActiveLoading and ParentGui ~= Library.ActiveLoading.ScreenGui) then
+        if ParentGui ~= ScreenGui then
             ParentGui = ScreenGui
         end
         TooltipLabel.Parent = ParentGui
@@ -2303,7 +2234,7 @@ function Library:AddTooltip(InfoStr: string, DisabledInfoStr: string, HoverInsta
         TooltipLabel.Visible = true
 
         while
-            (Library.Toggled or Library.ActiveLoading)
+            Library.Toggled
             and not Library.ActiveDialog
             and Library:MouseIsOverFrame(HoverInstance, Mouse)
             and not (CurrentMenu and Library:MouseIsOverFrame(CurrentMenu.Menu, Mouse))
@@ -2383,10 +2314,6 @@ function Library:Unload()
 
     Library.Unloaded = true
 
-    if Library.ActiveLoading then
-        Library.ActiveLoading:Destroy()
-    end
-
     if ScreenGui then
         ScreenGui:Destroy()
     end
@@ -2394,299 +2321,9 @@ function Library:Unload()
     getgenv().Library = nil
 end
 
-function Library:CreateKeySystem(KeyInfo)
-    KeyInfo = KeyInfo or {}
-    local TitleText = KeyInfo.Title or "Key System"
-    local CorrectKey = KeyInfo.Key
-    local SavePath = KeyInfo.SavePath
-    local DiscordUrl = KeyInfo.Discord or ""
-    local LogoAsset = KeyInfo.Logo or "rbxassetid://0"
-    local SuccessCallback = KeyInfo.Callback
-
-    local VerifyText = KeyInfo.VerifyText or "Verify Key"
-    local GetKeyText = KeyInfo.GetKeyText or "Get Key (Discord)"
-    local PlaceholderText = KeyInfo.Placeholder or "Enter access key..."
-    local LabelText = KeyInfo.Label or "Key"
-
-    assert(CorrectKey, "CreateKeySystem requires a Key parameter.")
-    assert(SavePath, "CreateKeySystem requires a SavePath parameter.")
-
-    local function ensureFolders(filePath)
-        if not makefolder then return end
-        local parts = filePath:split("/")
-        if #parts > 1 then
-            local current = ""
-            for i = 1, #parts - 1 do
-                current = current .. (i == 1 and "" or "/") .. parts[i]
-                if not isfolder(current) then
-                    pcall(makefolder, current)
-                end
-            end
-        end
-    end
-
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = TitleText:gsub("%s+", "") .. "UI"
-    ScreenGui.ResetOnSpawn = false
-    
-    if syn and syn.protect_gui then
-        syn.protect_gui(ScreenGui)
-        ScreenGui.Parent = game:GetService("CoreGui")
-    elseif gethui then
-        ScreenGui.Parent = gethui()
-    else
-        ScreenGui.Parent = game:GetService("CoreGui")
-    end
-
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.fromOffset(360, 180)
-    MainFrame.Position = UDim2.new(0.5, -180, 0.5, -90)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = ScreenGui
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 4)
-    Corner.Parent = MainFrame
-
-    local Border = Instance.new("UIStroke")
-    Border.Color = Color3.fromRGB(40, 40, 40)
-    Border.Thickness = 1
-    Border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    Border.Parent = MainFrame
-
-    local UserInputService = game:GetService("UserInputService")
-    local dragging, dragInput, dragStart, startPos
-    local function update(input)
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-    MainFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    MainFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
-
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.BackgroundTransparency = 1
-    Title.Text = TitleText
-    Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-    Title.TextSize = 14
-    Title.Font = Enum.Font.GothamMedium
-    Title.Parent = MainFrame
-
-    local Separator = Instance.new("Frame")
-    Separator.Name = "Separator"
-    Separator.Size = UDim2.new(1, 0, 0, 1)
-    Separator.Position = UDim2.fromOffset(0, 30)
-    Separator.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Separator.BorderSizePixel = 0
-    Separator.Parent = MainFrame
-
-    local Content = Instance.new("Frame")
-    Content.Name = "Content"
-    Content.Size = UDim2.new(1, -20, 1, -35)
-    Content.Position = UDim2.fromOffset(10, 35)
-    Content.BackgroundTransparency = 1
-    Content.Parent = MainFrame
-
-    local Layout = Instance.new("UIListLayout")
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 6)
-    Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    Layout.Parent = Content
-
-    local ImageBox = Instance.new("Frame")
-    ImageBox.Name = "ImageBox"
-    ImageBox.Size = UDim2.new(1, 0, 0, 50)
-    ImageBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    ImageBox.BorderSizePixel = 0
-    ImageBox.Parent = Content
-    ImageBox.LayoutOrder = 1
-
-    local ImageBoxCorner = Instance.new("UICorner")
-    ImageBoxCorner.CornerRadius = UDim.new(0, 4)
-    ImageBoxCorner.Parent = ImageBox
-
-    local ImageBoxBorder = Instance.new("UIStroke")
-    ImageBoxBorder.Color = Color3.fromRGB(30, 30, 30)
-    ImageBoxBorder.Thickness = 1
-    ImageBoxBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    ImageBoxBorder.Parent = ImageBox
-
-    local Logo = Instance.new("ImageLabel")
-    Logo.Name = "Logo"
-    Logo.Size = UDim2.fromOffset(40, 40)
-    Logo.Position = UDim2.new(0.5, -20, 0.5, -20)
-    Logo.BackgroundTransparency = 1
-    Logo.Image = LogoAsset
-    Logo.ScaleType = Enum.ScaleType.Fit
-    Logo.Parent = ImageBox
-
-    local InputContainer = Instance.new("Frame")
-    InputContainer.Name = "InputContainer"
-    InputContainer.Size = UDim2.new(1, 0, 0, 40)
-    InputContainer.BackgroundTransparency = 1
-    InputContainer.Parent = Content
-    InputContainer.LayoutOrder = 2
-
-    local InputLabel = Instance.new("TextLabel")
-    InputLabel.Name = "Label"
-    InputLabel.Size = UDim2.new(1, 0, 0, 15)
-    InputLabel.BackgroundTransparency = 1
-    InputLabel.Text = LabelText
-    InputLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-    InputLabel.TextSize = 12
-    InputLabel.TextXAlignment = Enum.TextXAlignment.Left
-    InputLabel.Font = Enum.Font.GothamMedium
-    InputLabel.Parent = InputContainer
-
-    local TextBox = Instance.new("TextBox")
-    TextBox.Name = "TextBox"
-    TextBox.Size = UDim2.new(1, 0, 0, 26)
-    TextBox.Position = UDim2.fromOffset(0, 14)
-    TextBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    TextBox.BorderSizePixel = 0
-    TextBox.Text = ""
-    TextBox.PlaceholderText = PlaceholderText
-    TextBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
-    TextBox.TextColor3 = Color3.fromRGB(240, 240, 240)
-    TextBox.TextSize = 12
-    TextBox.Font = Enum.Font.GothamMedium
-    TextBox.ClipsDescendants = true
-    TextBox.Parent = InputContainer
-
-    local TextBoxCorner = Instance.new("UICorner")
-    TextBoxCorner.CornerRadius = UDim.new(0, 4)
-    TextBoxCorner.Parent = TextBox
-
-    local TextBoxBorder = Instance.new("UIStroke")
-    TextBoxBorder.Color = Color3.fromRGB(30, 30, 30)
-    TextBoxBorder.Thickness = 1
-    TextBoxBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    TextBoxBorder.Parent = TextBox
-
-    TextBox.Focused:Connect(function()
-        TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 70)}):Play()
-    end)
-    TextBox.FocusLost:Connect(function()
-        TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
-    end)
-
-    local ButtonContainer = Instance.new("Frame")
-    ButtonContainer.Name = "ButtonContainer"
-    ButtonContainer.Size = UDim2.new(1, 0, 0, 26)
-    ButtonContainer.BackgroundTransparency = 1
-    ButtonContainer.Parent = Content
-    ButtonContainer.LayoutOrder = 3
-
-    local ButtonLayout = Instance.new("UIListLayout")
-    ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
-    ButtonLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    ButtonLayout.Padding = UDim.new(0, 10)
-    ButtonLayout.Parent = ButtonContainer
-
-    local function setupButton(btn, text, layoutOrder)
-        btn.Size = UDim2.new(0.5, -5, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.BorderSizePixel = 0
-        btn.Text = text
-        btn.TextColor3 = Color3.fromRGB(240, 240, 240)
-        btn.TextSize = 12
-        btn.Font = Enum.Font.GothamMedium
-        btn.Parent = ButtonContainer
-        btn.LayoutOrder = layoutOrder
-
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 4)
-        btnCorner.Parent = btn
-
-        local btnBorder = Instance.new("UIStroke")
-        btnBorder.Color = Color3.fromRGB(30, 30, 30)
-        btnBorder.Thickness = 1
-        btnBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        btnBorder.Parent = btn
-
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
-            TweenService:Create(btnBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(50, 50, 50)}):Play()
-        end)
-        btn.MouseLeave:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
-            TweenService:Create(btnBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
-        end)
-
-        return btnBorder
-    end
-
-    local VerifyBtn = Instance.new("TextButton")
-    local VerifyBtnBorder = setupButton(VerifyBtn, VerifyText, 1)
-
-    local GetKeyBtn = Instance.new("TextButton")
-    local GetKeyBtnBorder = setupButton(GetKeyBtn, GetKeyText, 2)
-
-    VerifyBtn.MouseButton1Click:Connect(function()
-        local enteredKey = TextBox.Text
-        if enteredKey == CorrectKey then
-            if writefile then
-                ensureFolders(SavePath)
-                pcall(writefile, SavePath, CorrectKey)
-            end
-            
-            ScreenGui:Destroy()
-            
-            if SuccessCallback then
-                SuccessCallback()
-            end
-        else
-            TweenService:Create(TextBoxBorder, TweenInfo.new(0.1), {Color = Color3.fromRGB(200, 50, 50)}):Play()
-            task.delay(1, function()
-                TweenService:Create(TextBoxBorder, TweenInfo.new(0.2), {Color = Color3.fromRGB(30, 30, 30)}):Play()
-            end)
-        end
-    end)
-
-    GetKeyBtn.MouseButton1Click:Connect(function()
-        if setclipboard then
-            setclipboard(DiscordUrl)
-            GetKeyBtn.Text = "Link Copied!"
-            task.delay(2, function()
-                GetKeyBtn.Text = GetKeyText
-            end)
-        else
-            GetKeyBtn.Text = DiscordUrl:gsub("https://", "")
-            task.delay(5, function()
-                GetKeyBtn.Text = GetKeyText
-            end)
-        end
-    end)
-end
-
 local CheckIcon = Library:GetIcon("check")
 local ArrowIcon = Library:GetIcon("chevron-up")
 local ResizeIcon = Library:GetIcon("move-diagonal-2")
-local KeyIcon = Library:GetIcon("key")
 local MoveIcon = Library:GetIcon("move")
 
 function Library:SetIconModule(module: IconModule)
@@ -2696,7 +2333,6 @@ function Library:SetIconModule(module: IconModule)
     CheckIcon = Library:GetIcon("check")
     ArrowIcon = Library:GetIcon("chevron-up")
     ResizeIcon = Library:GetIcon("move-diagonal-2")
-    KeyIcon = Library:GetIcon("key")
     MoveIcon = Library:GetIcon("move")
 end
 
@@ -3958,6 +3594,15 @@ do
             Data.Size = Params.Size or 14
             Data.Visible = Params.Visible or true
             Data.Style = Params.Style
+            Data.HeaderStyle = Params.HeaderStyle
+            Data.Clean = Params.Clean
+            Data.StatusDot = Params.StatusDot
+            Data.StatusColor = Params.StatusColor or Params.DotColor
+            Data.TitleColor = Params.TitleColor
+            Data.DividerColor = Params.DividerColor
+            Data.BackgroundColor = Params.BackgroundColor
+            Data.BackgroundTransparency = Params.BackgroundTransparency
+            Data.CornerRadius = Params.CornerRadius
             Data.Type = Params.Type
             Data.Color = Params.Color
             Data.Badge = Params.Badge
@@ -3994,6 +3639,7 @@ do
         local CardFrame
         local CardColorBar
         local BadgeLabel, TitleLabel, DescLabel, renderDescription
+        local isClean = Data.HeaderStyle == "Clean" or Data.Clean == true or Data.StatusDot ~= nil or (Data.HeaderStyle ~= "Badge" and Data.Badge == nil and Data.Style == "Card")
 
         if Data.Style == "Card" then
             local cardColorMap = {
@@ -4005,33 +3651,177 @@ do
             }
             local cardColor = Data.Color or cardColorMap[Data.Type] or cardColorMap.Default
 
-            CardFrame = New("Frame", {
-                BackgroundColor3 = Library.Scheme.MainColor,
-                BackgroundTransparency = 0.5,
-                ClipsDescendants = true,
-                Size = Data.Badge and UDim2.new(1, 0, 0, 0) or UDim2.new(1, 0, 0, 30),
-                AutomaticSize = Data.Badge and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,
-                Parent = Container,
-            })
-            New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CardFrame })
-            New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Transparency = 0.5, Parent = CardFrame })
-            CardColorBar = New("Frame", {
-                BackgroundColor3 = cardColor,
-                BorderSizePixel = 0,
-                Size = UDim2.new(0, 4, 1, 0),
-                Parent = CardFrame,
-            })
-
-            if Data.Badge then
-                local titleText, descText
-                local firstNewline = Label.Text:find("\n")
-                if firstNewline then
-                    titleText = Label.Text:sub(1, firstNewline - 1)
-                    descText = Label.Text:sub(firstNewline + 1)
-                else
-                    titleText = Label.Text
-                    descText = ""
+            local function parseDescription(dText)
+                local rows = {}
+                for line in dText:gmatch("[^\r\n]+") do
+                    if line:match("%S") then
+                        local name, value = line:match("^%s*•%s*<b>(.-):</b>%s*(.*)$")
+                        if name and value then
+                            table.insert(rows, { Type = "Bullet", Title = "• " .. name .. ":", Value = value })
+                        else
+                            table.insert(rows, { Type = "Text", Value = line })
+                        end
+                    end
                 end
+                return rows
+            end
+
+            local titleText, descText
+            local firstNewline = Label.Text:find("\n")
+            if firstNewline then
+                titleText = Label.Text:sub(1, firstNewline - 1)
+                descText = Label.Text:sub(firstNewline + 1)
+            else
+                titleText = Label.Text
+                descText = ""
+            end
+
+            local titleFontProp = (typeof(Data.Font) == "Font" or typeof(Data.Font) == "FontFace") and "FontFace" or "Font"
+            local descFontProp = (typeof(Data.DescFont) == "Font" or typeof(Data.DescFont) == "FontFace") and "FontFace" or "Font"
+
+            if isClean then
+                CardFrame = New("Frame", {
+                    BackgroundColor3 = Data.BackgroundColor or Library.Scheme.MainColor,
+                    BackgroundTransparency = Data.BackgroundTransparency or 0.2,
+                    ClipsDescendants = true,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = Container,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, Data.CornerRadius or 8), Parent = CardFrame })
+                local cardStroke = New("UIStroke", {
+                    Color = Color3.fromRGB(255, 255, 255),
+                    Thickness = 1.2,
+                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                    Parent = CardFrame,
+                })
+                New("UIGradient", {
+                    Rotation = 90,
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, cardColor),
+                        ColorSequenceKeypoint.new(1, Library:GetDarkerColor(cardColor))
+                    }),
+                    Parent = cardStroke,
+                })
+                New("UIPadding", {
+                    PaddingLeft = UDim.new(0, 12),
+                    PaddingRight = UDim.new(0, 12),
+                    PaddingTop = UDim.new(0, 10),
+                    PaddingBottom = UDim.new(0, 10),
+                    Parent = CardFrame,
+                })
+
+                local CardContent = New("Frame", {
+                    Name = "CardContent",
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = CardFrame,
+                })
+                New("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), Parent = CardContent })
+
+                local HeaderFrame = New("Frame", {
+                    Name = "HeaderFrame",
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 18),
+                    LayoutOrder = 1,
+                    Parent = CardContent,
+                })
+
+                local dot = New("Frame", {
+                    Name = "StatusDot",
+                    Size = UDim2.fromOffset(7, 7),
+                    Position = UDim2.new(0, 2, 0.5, -3),
+                    BackgroundColor3 = Data.StatusColor or (typeof(Data.StatusDot) == "Color3" and Data.StatusDot) or Data.BadgeColor or cardColor,
+                    BorderSizePixel = 0,
+                    Parent = HeaderFrame,
+                })
+                New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
+
+                TitleLabel = New("TextLabel", {
+                    BackgroundTransparency = 1,
+                    Text = titleText,
+                    TextColor3 = Data.TitleColor or Color3.fromRGB(250, 245, 240),
+                    TextSize = Data.Size or 13.5,
+                    [titleFontProp] = Data.Font,
+                    TextWrapped = true,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    TextYAlignment = Enum.TextYAlignment.Center,
+                    Position = UDim2.new(0, 18, 0, 0),
+                    Size = UDim2.new(1, -20, 1, 0),
+                    Parent = HeaderFrame,
+                })
+
+                local TitleDivider = New("Frame", {
+                    Name = "TitleDivider",
+                    Size = UDim2.new(1, 0, 0, 1),
+                    BackgroundColor3 = Data.DividerColor or cardColor,
+                    BorderSizePixel = 0,
+                    LayoutOrder = 2,
+                    Parent = CardContent,
+                })
+                New("UIGradient", {
+                    Transparency = NumberSequence.new({
+                        NumberSequenceKeypoint.new(0, 0.4),
+                        NumberSequenceKeypoint.new(0.2, 0.1),
+                        NumberSequenceKeypoint.new(0.8, 0.7),
+                        NumberSequenceKeypoint.new(1, 1),
+                    }),
+                    Parent = TitleDivider,
+                })
+
+                renderDescription = function(dText)
+                    for _, child in CardContent:GetChildren() do
+                        if child:IsA("Frame") and child.Name == "RowFrame" then child:Destroy() end
+                    end
+                    local rows = parseDescription(dText)
+                    for idx, row in ipairs(rows) do
+                        local RowFrame = New("Frame", {
+                            Name = "RowFrame",
+                            BackgroundTransparency = 1,
+                            Size = UDim2.new(1, 0, 0, 0),
+                            AutomaticSize = Enum.AutomaticSize.Y,
+                            LayoutOrder = idx + 2,
+                            Parent = CardContent,
+                        })
+                        if row.Type == "Bullet" then
+                            local tw = row.Title
+                            local sm = Data.DescSize / 13
+                            local tw2 = 0
+                            for i = 1, #tw do
+                                local c = tw:sub(i, i)
+                                if c == "•" or c == " " then tw2 = tw2 + 5 * sm
+                                elseif c:match("%u") or c == "w" or c == "m" then tw2 = tw2 + 8 * sm
+                                elseif c == "i" or c == "l" or c == "t" or c == ":" or c == "f" or c == "r" then tw2 = tw2 + 4 * sm
+                                else tw2 = tw2 + 6 * sm end
+                            end
+                            tw2 = tw2 + 4
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Title, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Size = UDim2.new(0, tw2, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Value, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Position = UDim2.new(0, tw2, 0, 0), Size = UDim2.new(1, -tw2, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                        else
+                            New("TextLabel", { BackgroundTransparency = 1, Text = row.Value, TextColor3 = Library.Scheme.FontColor, TextSize = Data.DescSize, [descFontProp] = Data.DescFont, RichText = true, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = RowFrame })
+                        end
+                    end
+                end
+                renderDescription(descText)
+            elseif Data.Badge then
+                CardFrame = New("Frame", {
+                    BackgroundColor3 = Library.Scheme.MainColor,
+                    BackgroundTransparency = 0.5,
+                    ClipsDescendants = true,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = Container,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CardFrame })
+                New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Transparency = 0.5, Parent = CardFrame })
+                CardColorBar = New("Frame", {
+                    BackgroundColor3 = cardColor,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(0, 4, 1, 0),
+                    Parent = CardFrame,
+                })
 
                 New("UIPadding", {
                     PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0),
@@ -4081,9 +3871,6 @@ do
                     Parent = BadgeFrame,
                 })
 
-                local titleFontProp = (typeof(Data.Font) == "Font" or typeof(Data.Font) == "FontFace") and "FontFace" or "Font"
-                local descFontProp = (typeof(Data.DescFont) == "Font" or typeof(Data.DescFont) == "FontFace") and "FontFace" or "Font"
-
                 TitleLabel = New("TextLabel", {
                     BackgroundTransparency = 1, Text = titleText,
                     TextColor3 = Library.Scheme.FontColor, TextSize = Data.Size,
@@ -4093,21 +3880,6 @@ do
                     Size = UDim2.new(1, -badgeWidth - 6, 0, 0),
                     AutomaticSize = Enum.AutomaticSize.Y, Parent = HeaderFrame,
                 })
-
-                local function parseDescription(dText)
-                    local rows = {}
-                    for line in dText:gmatch("[^\r\n]+") do
-                        if line:match("%S") then
-                            local name, value = line:match("^%s*•%s*<b>(.-):</b>%s*(.*)$")
-                            if name and value then
-                                table.insert(rows, { Type = "Bullet", Title = "• " .. name .. ":", Value = value })
-                            else
-                                table.insert(rows, { Type = "Text", Value = line })
-                            end
-                        end
-                    end
-                    return rows
-                end
 
                 renderDescription = function(dText)
                     for _, child in CardContent:GetChildren() do
@@ -4140,11 +3912,27 @@ do
                     end
                 end
                 renderDescription(descText)
+            else
+                CardFrame = New("Frame", {
+                    BackgroundColor3 = Library.Scheme.MainColor,
+                    BackgroundTransparency = 0.5,
+                    ClipsDescendants = true,
+                    Size = UDim2.new(1, 0, 0, 30),
+                    Parent = Container,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, 6), Parent = CardFrame })
+                New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Transparency = 0.5, Parent = CardFrame })
+                CardColorBar = New("Frame", {
+                    BackgroundColor3 = cardColor,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(0, 4, 1, 0),
+                    Parent = CardFrame,
+                })
             end
         end
 
         local TextLabel
-        if not Data.Badge then
+        if not (Data.Badge or isClean) then
             TextLabel = New("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = Data.Style == "Card" and UDim2.new(0, 12, 0, 6) or UDim2.fromScale(0, 0),
@@ -4170,7 +3958,7 @@ do
 
         function Label:SetText(Text: string)
             Label.Text = Text
-            if BadgeLabel then
+            if TitleLabel and renderDescription then
                 local titleText, descText
                 local firstNewline = Text:find("\n")
                 if firstNewline then
@@ -4182,7 +3970,7 @@ do
                 end
                 TitleLabel.Text = titleText
                 renderDescription(descText)
-            else
+            elseif TextLabel then
                 TextLabel.Text = Text
                 if Label.DoesWrap then
                     local _, Y = Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
@@ -4193,7 +3981,7 @@ do
             Groupbox:Resize()
         end
 
-        if not Data.Badge then
+        if not (Data.Badge or isClean) then
             if Label.DoesWrap then
                 local _, Y = Library:GetTextBounds(Label.Text, TextLabel.FontFace, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
                 TextLabel.Size = Data.Style == "Card" and UDim2.new(1, -24, 0, Y) or UDim2.new(1, 0, 0, Y + 4)
@@ -9226,18 +9014,34 @@ end
 
 function Library:CreateWindow(WindowInfo)
     WindowInfo = Library:Validate(WindowInfo, Templates.Window)
-    WindowInfo.PopCat = true
-    if Library.ActiveLoading and Library.ActiveLoading.PopCatLoaderIcon then
-        local isLeft = WindowInfo.MobileButtonsSide:lower() == "left"
-        local dim = Vector2.new(418, 418)
-        if not isLeft then
-            Library.ActiveLoading.PopCatLoaderIcon.ImageRectOffset = Vector2.new(dim.X, 0)
-            Library.ActiveLoading.PopCatLoaderIcon.ImageRectSize = Vector2.new(-dim.X, dim.Y)
-        else
-            Library.ActiveLoading.PopCatLoaderIcon.ImageRectOffset = Vector2.zero
-            Library.ActiveLoading.PopCatLoaderIcon.ImageRectSize = Vector2.new(dim.X, dim.Y)
+    local Themes = {
+        Bobcat = {
+            BackgroundColor = Color3.fromRGB(15, 12, 19),
+            MainColor = Color3.fromRGB(36, 27, 46),
+            AccentColor = Color3.fromRGB(240, 140, 165),
+            OutlineColor = Color3.fromRGB(85, 64, 110),
+            FontColor = Color3.fromRGB(240, 235, 245),
+        },
+    }
+    if typeof(WindowInfo.Theme) == "string" and Themes[WindowInfo.Theme] then
+        for k, v in pairs(Themes[WindowInfo.Theme]) do
+            Library.Scheme[k] = v
+        end
+    elseif typeof(WindowInfo.Theme) == "table" then
+        for k, v in pairs(WindowInfo.Theme) do
+            Library.Scheme[k] = v
         end
     end
+    if typeof(WindowInfo.Scheme) == "string" and Themes[WindowInfo.Scheme] then
+        for k, v in pairs(Themes[WindowInfo.Scheme]) do
+            Library.Scheme[k] = v
+        end
+    elseif typeof(WindowInfo.Scheme) == "table" then
+        for k, v in pairs(WindowInfo.Scheme) do
+            Library.Scheme[k] = v
+        end
+    end
+
     local SearchResultsTab
     Library.ScrollLongText = WindowInfo.ScrollLongText
     local ViewportSize: Vector2 = workspace.CurrentCamera.ViewportSize
@@ -9264,23 +9068,7 @@ function Library:CreateWindow(WindowInfo)
     end
     WindowInfo.CornerRadius = math.min(WindowInfo.CornerRadius, 20)
     
-    --// Old Naming \\--
-    if WindowInfo.Compact ~= nil then
-        WindowInfo.SidebarCompacted = WindowInfo.Compact
-    end
-    if WindowInfo.SideBarText == false then
-        WindowInfo.SidebarCompacted = true
-        WindowInfo.EnableSidebarResize = false
-        WindowInfo.EnableCompacting = false
-        WindowInfo.DisableCompactingSnap = true
-    end
-    if WindowInfo.SidebarMinWidth ~= nil then
-        WindowInfo.MinSidebarWidth = WindowInfo.SidebarMinWidth
-    end
-    WindowInfo.MinSidebarWidth = math.max(64, WindowInfo.MinSidebarWidth)
-    WindowInfo.SidebarCompactWidth = math.max(48, WindowInfo.SidebarCompactWidth)
-    WindowInfo.SidebarCollapseThreshold = math.clamp(WindowInfo.SidebarCollapseThreshold, 0.1, 0.9)
-    WindowInfo.CompactWidthActivation = math.max(48, WindowInfo.CompactWidthActivation)
+
 
     Library.CornerRadius = WindowInfo.CornerRadius
     Library:SetNotifySide(WindowInfo.NotifySide)
@@ -9291,7 +9079,6 @@ function Library:CreateWindow(WindowInfo)
     Library.DisableFloatingMenu = WindowInfo.DisableFloatingMenu
 
     local MainFrame
-    local DividerLine
     local HeaderLine
     local TitleHolder
     local WindowIcon
@@ -9300,15 +9087,13 @@ function Library:CreateWindow(WindowInfo)
     local CurrentTabLabel
     local CurrentTabDescription
     local ResizeButton
-    local Tabs, SidebarBottom, SidebarBackground
+    local Tabs
     local Container
     local BackgroundImage
     local BottomBackground, BottomBar, BottomLine
     local FooterLabel
 
-    local IsCompact = WindowInfo.SidebarCompacted
-    local InitialLeftWidth = IsCompact and WindowInfo.SidebarCompactWidth or math.ceil(WindowInfo.Size.X.Offset * 0.3)
-    local LastExpandedWidth = IsCompact and math.ceil(WindowInfo.Size.X.Offset * 0.3) or InitialLeftWidth
+    local IsTopTabs = true
 
     do
         Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu("Keybinds")
@@ -9351,21 +9136,24 @@ function Library:CreateWindow(WindowInfo)
             Parent = OutStroke
         })
         HeaderLine = Library:MakeLine(MainFrame, {
-            Position = UDim2.new(0, InitialLeftWidth, 0, 48),
-            Size = UDim2.new(1, -InitialLeftWidth, 0, 1),
+            Position = UDim2.new(0, 8, 0, 84),
+            Size = UDim2.new(1, -16, 0, 2),
             ZIndex = 3,
         })
         HeaderLine.BackgroundColor3 = Library.Scheme.AccentColor
+        HeaderLine.BorderSizePixel = 0
+        New("UIGradient", {
+            Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.08, 0.2),
+                NumberSequenceKeypoint.new(0.5, 0),
+                NumberSequenceKeypoint.new(0.92, 0.2),
+                NumberSequenceKeypoint.new(1, 1),
+            }),
+            Parent = HeaderLine,
+        })
         Library:AddToRegistry(HeaderLine, {
             BackgroundColor3 = "AccentColor"
-        })
-
-        DividerLine = New("Frame", {
-            BackgroundColor3 = "OutlineColor",
-            Position = UDim2.fromOffset(InitialLeftWidth, 0),
-            Size = UDim2.new(0, 1, 1, -21),
-            ZIndex = 3,
-            Parent = MainFrame,
         })
 
         if WindowInfo.BackgroundImage then
@@ -9393,7 +9181,6 @@ function Library:CreateWindow(WindowInfo)
             MainFrame.Position = UDim2.new(0.5, -MainFrame.Size.X.Offset / 2, 0.5, -MainFrame.Size.Y.Offset / 2)
         end
 
-        --// Top Bar \\-
         local TopBar = New("Frame", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 48),
@@ -9419,37 +9206,34 @@ function Library:CreateWindow(WindowInfo)
         })
         Library:MakeDraggable(MainFrame, TopBar, false, true)
 
-        --// Title
         TitleHolder = New("Frame", {
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, InitialLeftWidth, 1, 0),
+            Position = UDim2.new(0, 14, 0, 0),
+            Size = UDim2.new(0, 240, 1, 0),
             Parent = TopBar,
         })
         New("UIListLayout", {
             FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Center,
             Padding = UDim.new(0, 6),
             Parent = TitleHolder,
         })
 
-        local dim = WindowInfo.PopCatDimensions
+        local IconAsset = WindowInfo.Icon or WindowInfo.WindowIcon or CustomImageManager.GetAsset("BobcatLogo")
         WindowIcon = New("ImageLabel", {
             BackgroundTransparency = 1,
-            Image = CustomImageManager.GetAsset("PopCatSmirkClosed"),
-            ImageRectOffset = Vector2.new(dim.X, 0),
-            ImageRectSize = Vector2.new(-dim.X, dim.Y),
-            Size = WindowInfo.IconSize,
+            Image = IconAsset,
+            Size = WindowInfo.IconSize or UDim2.fromOffset(20, 20),
             Parent = TitleHolder,
         })
         Library.WindowIcon = WindowIcon
 
-        --// Top Right Bar
         RightWrapper = New("Frame", {
             AnchorPoint = Vector2.new(1, 0.5),
             BackgroundTransparency = 1,
             Position = UDim2.new(1, MoveIcon and -70 or -36, 0.5, 0),
-            Size = UDim2.new(1, -InitialLeftWidth - (MoveIcon and 78 or 44) - 1, 1, -16),
+            Size = UDim2.new(1, -260 - (MoveIcon and 78 or 44) - 1, 1, -16),
             Parent = TopBar,
         })
 
@@ -9560,28 +9344,27 @@ function Library:CreateWindow(WindowInfo)
             end)
         end
 
-        --// Bottom Bar \\--
         BottomBackground = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 4)
             end,
-            Position = UDim2.new(0, InitialLeftWidth, 1, 0),
-            Size = UDim2.new(1, -InitialLeftWidth, 0, 20 + WindowInfo.CornerRadius),
+            Position = UDim2.new(0, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 20 + WindowInfo.CornerRadius),
             Parent = MainFrame
         })
         BottomLine = Library:MakeLine(MainFrame, {
             AnchorPoint = Vector2.new(0, 1),
-            Position = UDim2.new(0, InitialLeftWidth, 1, -20),
-            Size = UDim2.new(1, -InitialLeftWidth, 0, 1),
+            Position = UDim2.new(0, 0, 1, -20),
+            Size = UDim2.new(1, 0, 0, 1),
             ZIndex = 3,
         })
 
         BottomBar = New("Frame", {
             AnchorPoint = Vector2.new(0, 1),
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, InitialLeftWidth, 1, 0),
-            Size = UDim2.new(1, -InitialLeftWidth, 0, 20),
+            Position = UDim2.new(0, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 20),
             Parent = MainFrame,
         })
         table.insert(
@@ -9592,7 +9375,6 @@ function Library:CreateWindow(WindowInfo)
             })
         )
 
-        --// Footer
         FooterLabel = New("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.fromScale(1, 1),
@@ -9602,7 +9384,6 @@ function Library:CreateWindow(WindowInfo)
             Parent = BottomBar,
         })
 
-        --// Resize Button
         if WindowInfo.Resizable then
             ResizeButton = New("TextButton", {
                 AnchorPoint = Vector2.new(1, 0),
@@ -9632,49 +9413,24 @@ function Library:CreateWindow(WindowInfo)
             Parent = ResizeButton,
         })
 
-        --// Tabs \\--
-        SidebarBackground = New("Frame", {
-            BackgroundColor3 = "BackgroundColor",
-            BorderSizePixel = 0,
-            Position = UDim2.fromOffset(0, 49),
-            Size = UDim2.new(0, InitialLeftWidth, 1, -49),
-            ZIndex = 1,
-            Parent = MainFrame,
-        })
-
         Tabs = New("ScrollingFrame", {
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
-            BackgroundColor3 = "BackgroundColor",
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, 0, 0, 64),
+            Size = UDim2.new(1, -16, 0, 34),
             BackgroundTransparency = 1,
             CanvasSize = UDim2.fromScale(0, 0),
-            Position = UDim2.fromOffset(0, 49),
+            AutomaticCanvasSize = Enum.AutomaticSize.X,
+            ScrollingDirection = Enum.ScrollingDirection.X,
             ScrollBarThickness = 0,
-            Size = UDim2.new(0, InitialLeftWidth, 1, -70),
-            ZIndex = 2,
+            ZIndex = 5,
             Parent = MainFrame,
         })
         New("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 6),
             Parent = Tabs,
-        })
-
-        SidebarBottom = New("Frame", {
-            AnchorPoint = Vector2.new(0, 1),
-            BackgroundColor3 = "BackgroundColor",
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Position = UDim2.fromScale(0, 1),
-            Size = UDim2.new(0, InitialLeftWidth, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 2,
-            Parent = MainFrame,
-        })
-        New("UIListLayout", {
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = SidebarBottom,
-        })
-        New("UIPadding", {
-            PaddingBottom = UDim.new(0, 8),
-            Parent = SidebarBottom,
         })
 
         local FooterTabs = New("Frame", {
@@ -9692,29 +9448,29 @@ function Library:CreateWindow(WindowInfo)
             Parent = FooterTabs,
         })
 
-
-        SidebarBottom:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-            local CurrentWidth = DividerLine and DividerLine.Position.X.Offset or InitialLeftWidth
-            local BottomHeight = SidebarBottom.AbsoluteSize.Y
-            Tabs.Size = UDim2.new(0, CurrentWidth, 1, -70 - BottomHeight)
-        end)
-
-        --// Container \\--
         Container = New("Frame", {
-            AnchorPoint = Vector2.new(1, 0),
-            BackgroundColor3 = function()
-                return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
-            end,
+            AnchorPoint = Vector2.new(0.5, 0),
+            BackgroundColor3 = "MainColor",
             Name = "Container",
-            Position = UDim2.new(1, 0, 0, 49),
-            Size = UDim2.new(1, -InitialLeftWidth - 1, 1, -70),
+            Position = UDim2.new(0.5, 0, 0, 88),
+            Size = UDim2.new(1, -16, 1, -114),
+            ClipsDescendants = true,
             Parent = MainFrame,
         })
+        New("UICorner", {
+            CornerRadius = UDim.new(0, 8),
+            Parent = Container,
+        })
+        New("UIStroke", {
+            Color = "OutlineColor",
+            Thickness = 1.2,
+            Parent = Container,
+        })
         New("UIPadding", {
-            PaddingBottom = UDim.new(0, 0),
-            PaddingLeft = UDim.new(0, 6),
-            PaddingRight = UDim.new(0, 6),
-            PaddingTop = UDim.new(0, 0),
+            PaddingBottom = UDim.new(0, 8),
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+            PaddingTop = UDim.new(0, 8),
             Parent = Container,
         })
     end
@@ -9775,120 +9531,12 @@ function Library:CreateWindow(WindowInfo)
         BottomBackground.Size = UDim2.new(1, 0, 0, 20 + Radius)
 
         for _, Tab in Library.Tabs do
-            if Tab.IsKeyTab then
-                continue
-            end
-
             for _, Tabbox in Tab.Tabboxes do
                 Tabbox:UpdateCorners()
             end
         end
     end
 
-    local function ApplyCompact()
-        if WindowInfo.SideBarText == false then
-            IsCompact = true
-        else
-            IsCompact = Window:GetSidebarWidth() == WindowInfo.SidebarCompactWidth
-            if WindowInfo.DisableCompactingSnap then
-                IsCompact = Window:GetSidebarWidth() <= WindowInfo.CompactWidthActivation
-            end
-        end
-
-        if WindowIcon:IsA("TextLabel") then
-            WindowIcon.Visible = IsCompact
-        end
-
-        for _, Button in Library.TabButtons do
-            if not Button.Icon then
-                continue
-            end
-
-            if Button.Label then
-                Button.Label.Visible = not IsCompact
-            end
-            
-            if IsCompact then
-                Button.Padding.PaddingBottom = UDim.new(0, 6)
-                Button.Padding.PaddingLeft = UDim.new(0, 6)
-                Button.Padding.PaddingRight = UDim.new(0, 6)
-                Button.Padding.PaddingTop = UDim.new(0, 6)
-                Button.Icon.AnchorPoint = Vector2.new(0.5, 0.5)
-                Button.Icon.Position = UDim2.fromScale(0.5, 0.5)
-                Button.Icon.Size = UDim2.fromOffset(20, 20)
-                Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeXY
-            else
-                Button.Padding.PaddingBottom = UDim.new(0, 11)
-                Button.Padding.PaddingLeft = UDim.new(0, 12)
-                Button.Padding.PaddingRight = UDim.new(0, 12)
-                Button.Padding.PaddingTop = UDim.new(0, 11)
-                Button.Icon.AnchorPoint = Vector2.new(0, 0)
-                Button.Icon.Position = UDim2.new(0, 0, 0, 0)
-                Button.Icon.Size = UDim2.fromScale(1, 1)
-                Button.Icon.SizeConstraint = Enum.SizeConstraint.RelativeYY
-            end
-        end
-
-        for _, Section in Window.TabSections do
-            Section.Frame.Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30)
-            Section.Label.Visible = not IsCompact
-            Section.Divider.Visible = IsCompact
-        end
-    end
-
-    function Window:IsSidebarCompacted()
-        return IsCompact
-    end
-
-    function Window:SetCompact(State)
-        if WindowInfo.SideBarText == false then
-            Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
-        else
-            Window:SetSidebarWidth(State and WindowInfo.SidebarCompactWidth or LastExpandedWidth)
-        end
-    end
-
-    function Window:GetSidebarWidth()
-        return Tabs.Size.X.Offset
-    end
-
-    function Window:SetSidebarWidth(Width)
-        if WindowInfo.SideBarText == false then
-            Width = WindowInfo.SidebarCompactWidth
-        else
-            Width = math.clamp(Width, 48, MainFrame.Size.X.Offset - WindowInfo.MinContainerWidth - 1)
-        end
-
-        DividerLine.Position = UDim2.fromOffset(Width, 0)
-        HeaderLine.Position = UDim2.new(0, Width, 0, 48)
-        HeaderLine.Size = UDim2.new(1, -Width, 0, 1)
-
-        BottomBackground.Position = UDim2.new(0, Width, 1, 0)
-        BottomBackground.Size = UDim2.new(1, -Width, 0, 20 + WindowInfo.CornerRadius)
-        BottomLine.Position = UDim2.new(0, Width, 1, -20)
-        BottomLine.Size = UDim2.new(1, -Width, 0, 1)
-        BottomBar.Position = UDim2.new(0, Width, 1, 0)
-        BottomBar.Size = UDim2.new(1, -Width, 0, 20)
-
-        TitleHolder.Size = UDim2.new(0, Width, 1, 0)
-        RightWrapper.Size = UDim2.new(1, -Width - (MoveIcon and 78 or 44) - 1, 1, -16)
-        if SidebarBackground then
-            SidebarBackground.Size = UDim2.new(0, Width, 1, -49)
-        end
-        if SidebarBottom then
-            SidebarBottom.Size = UDim2.new(0, Width, 0, 0)
-        end
-        local BottomHeight = SidebarBottom and SidebarBottom.AbsoluteSize.Y or 0
-        Tabs.Size = UDim2.new(0, Width, 1, -49 - BottomHeight)
-        Container.Size = UDim2.new(1, -Width - 1, 1, -70)
-
-        if WindowInfo.EnableCompacting or WindowInfo.SideBarText == false then
-            ApplyCompact()
-        end
-        if not IsCompact then
-            LastExpandedWidth = Width
-        end
-    end
 
     function Window:ShowTabInfo(Name, Description)
         CurrentTabLabel.Text = Name
@@ -9899,41 +9547,6 @@ function Library:CreateWindow(WindowInfo)
         CurrentTabInfo.Visible = false
     end
 
-    function Window:AddTabSection(Name)
-        local SectionFrame = New("Frame", {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30),
-            Parent = Tabs,
-        })
-
-        local TextLabel = New("TextLabel", {
-            BackgroundTransparency = 1,
-            Position = UDim2.fromOffset(12, 0),
-            Size = UDim2.new(1, -24, 1, 0),
-            Text = Name:upper(),
-            TextSize = 12,
-            TextColor3 = "FontColor",
-            TextTransparency = 0.6,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Visible = not IsCompact,
-            Parent = SectionFrame,
-        })
-
-        local Divider = New("Frame", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            BackgroundColor3 = "OutlineColor",
-            Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.new(1, -24, 0, 1),
-            Visible = IsCompact,
-            Parent = SectionFrame,
-        })
-
-        table.insert(Window.TabSections, {
-            Frame = SectionFrame,
-            Label = TextLabel,
-            Divider = Divider,
-        })
-    end
 
     function Window:AddTab(...)
         local Name = nil
@@ -9964,6 +9577,7 @@ function Library:CreateWindow(WindowInfo)
         local TabButton: TextButton | ImageButton
         local TabLabel
         local TabIcon
+        local TabStroke
 
         local TabContainer
         local TabLeft
@@ -9971,26 +9585,23 @@ function Library:CreateWindow(WindowInfo)
         local TabMiddle
 
         Icon = Library:GetCustomIcon(Icon)
-        if Side == "SidebarBottom" and not SidebarBottom:FindFirstChild("Divider") then
-            local DividerFrame = New("Frame", {
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, IsCompact and 15 or 30),
-                LayoutOrder = 0,
-                Name = "Divider",
-                Parent = SidebarBottom,
-            })
-            New("Frame", {
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundColor3 = "OutlineColor",
-                BackgroundTransparency = 0.5,
-                Position = UDim2.fromScale(0.5, 0.5),
-                Size = UDim2.new(1, -24, 0, 1),
-                BorderSizePixel = 0,
-                Parent = DividerFrame,
-            })
-        end
+
         do
-            if Side == "Footer" then
+            if Side == "Header" or Side == "SidebarBottom" then
+                TabButton = New("ImageButton", {
+                    BackgroundTransparency = 1,
+                    Image = Icon and Icon.Url or "",
+                    ImageColor3 = Icon and (Icon.Custom and "WhiteColor" or "AccentColor") or "FontColor",
+                    ImageRectOffset = Icon and Icon.ImageRectOffset or Vector2.zero,
+                    ImageRectSize = Icon and Icon.ImageRectSize or Vector2.zero,
+                    ImageTransparency = 0.5,
+                    Size = UDim2.fromOffset(20, 20),
+                    Parent = HeaderButtons,
+                })
+                Library:AddToRegistry(TabButton, {
+                    ImageColor3 = Icon and (Icon.Custom and "WhiteColor" or "AccentColor") or "FontColor",
+                })
+            elseif Side == "Footer" then
                 if Icon then
                     TabButton = New("ImageButton", {
                         BackgroundTransparency = 1,
@@ -10018,65 +9629,37 @@ function Library:CreateWindow(WindowInfo)
             else
                 TabButton = New("TextButton", {
                     BackgroundColor3 = "MainColor",
-                    BackgroundTransparency = 1,
-                    LayoutOrder = Side == "SidebarBottom" and 1 or 0,
-                    Size = UDim2.new(1, 0, 0, 40),
+                    BackgroundTransparency = 0,
+                    Size = UDim2.fromOffset(36, 28),
                     Text = "",
-                    Parent = (Side == "SidebarBottom" or Side == "Header") and SidebarBottom or Tabs,
+                    Parent = Tabs,
                 })
-                local ButtonPadding = New("UIPadding", {
-                    PaddingBottom = UDim.new(0, IsCompact and 6 or 11),
-                    PaddingLeft = UDim.new(0, IsCompact and 6 or 12),
-                    PaddingRight = UDim.new(0, IsCompact and 6 or 12),
-                    PaddingTop = UDim.new(0, IsCompact and 6 or 11),
+                New("UICorner", {
+                    CornerRadius = UDim.new(0, 6),
                     Parent = TabButton,
                 })
-
-                local LabelContainer = New("Frame", {
-                    BackgroundTransparency = 1,
-                    ClipsDescendants = true,
-                    Position = UDim2.fromOffset(30, 0),
-                    Size = UDim2.new(1, -30, 1, 0),
-                    Visible = not IsCompact,
+                TabStroke = New("UIStroke", {
+                    Color = "OutlineColor",
+                    Thickness = 1,
+                    ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
                     Parent = TabButton,
                 })
-
-                TabLabel = New("TextLabel", {
-                    BackgroundTransparency = 1,
-                    Size = UDim2.fromScale(1, 1),
-                    Text = Name,
-                    TextSize = 16,
-                    TextTransparency = 0.5,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    Parent = LabelContainer,
-                })
-
                 if Icon then
                     TabIcon = New("ImageLabel", {
-                        AnchorPoint = IsCompact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
-                        Position = IsCompact and UDim2.fromScale(0.5, 0.5) or UDim2.new(0, 0, 0, 0),
+                        AnchorPoint = Vector2.new(0.5, 0.5),
+                        Position = UDim2.new(0.5, 0, 0.5, 0),
+                        Size = UDim2.fromOffset(18, 18),
                         Image = Icon.Url,
                         ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
                         ImageRectOffset = Icon.ImageRectOffset,
                         ImageRectSize = Icon.ImageRectSize,
                         ImageTransparency = 0.5,
                         ScaleType = Enum.ScaleType.Fit,
-                        Size = IsCompact and UDim2.fromOffset(20, 20) or UDim2.fromScale(1, 1),
-                        SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
                         Parent = TabButton,
                     })
                 end
-
-                Library:SetUpMarquee(TabLabel, TabButton, LabelContainer)
-
-                table.insert(Library.TabButtons, {
-                    Label = LabelContainer,
-                    Padding = ButtonPadding,
-                    Icon = TabIcon,
-                })
             end
 
-            --// Tab Container \\--
             TabContainer = New("Frame", {
                 BackgroundTransparency = 1,
                 Size = UDim2.fromScale(1, 1),
@@ -10089,8 +9672,8 @@ function Library:CreateWindow(WindowInfo)
                 BackgroundTransparency = 1,
                 CanvasSize = UDim2.fromScale(0, 0),
                 ScrollBarImageColor3 = "OutlineColor",
-                ScrollBarImageTransparency = 0.8,
-                ScrollBarThickness = 3,
+                ScrollBarImageTransparency = 0.3,
+                ScrollBarThickness = 2,
                 Size = UDim2.new(1, 0, 1, 0),
                 Parent = TabContainer,
             })
@@ -10103,8 +9686,8 @@ function Library:CreateWindow(WindowInfo)
             end)
             New("UIPadding", {
                 PaddingBottom = UDim.new(0, 2),
-                PaddingLeft = UDim.new(0, 2),
-                PaddingRight = UDim.new(0, 2),
+                PaddingLeft = UDim.new(0, 4),
+                PaddingRight = UDim.new(0, 6),
                 PaddingTop = UDim.new(0, 2),
                 Parent = TabMiddle,
             })
@@ -11229,21 +10812,6 @@ function Library:CreateWindow(WindowInfo)
             end
         end
 
-        function Tab:Hover(Hovering)
-            if Library.ActiveTab == Tab then
-                return
-            end
-
-            TweenService:Create(TabLabel, Library.TweenInfo, {
-                TextTransparency = Hovering and 0.25 or 0.5,
-            }):Play()
-            if TabIcon then
-                TweenService:Create(TabIcon, Library.TweenInfo, {
-                    ImageTransparency = Hovering and 0.25 or 0.5,
-                }):Play()
-            end
-        end
-
         function Tab:Show()
             if Library.ActiveTab == Tab then
                 return
@@ -11270,7 +10838,11 @@ function Library:CreateWindow(WindowInfo)
                 Library.ActiveTab:Hide()
             end
 
-            if Side == "Footer" then
+            if Side == "Header" or Side == "SidebarBottom" then
+                TweenService:Create(TabButton, Library.TweenInfo, {
+                    ImageTransparency = 0,
+                }):Play()
+            elseif Side == "Footer" then
                 if Icon then
                     TweenService:Create(TabButton, Library.TweenInfo, {
                         ImageTransparency = 0,
@@ -11281,16 +10853,18 @@ function Library:CreateWindow(WindowInfo)
                     }):Play()
                 end
             else
-                TweenService:Create(TabButton, Library.TweenInfo, {
-                    BackgroundTransparency = 0,
-                }):Play()
-                TweenService:Create(TabLabel, Library.TweenInfo, {
-                    TextTransparency = 0,
-                }):Play()
+                if TabStroke then
+                    TweenService:Create(TabStroke, Library.TweenInfo, {
+                        Color = Library.Scheme.AccentColor,
+                    }):Play()
+                end
                 if TabIcon then
                     TweenService:Create(TabIcon, Library.TweenInfo, {
                         ImageTransparency = 0,
                     }):Play()
+                end
+                if TabMiddle then
+                    TabMiddle.CanvasPosition = Vector2.zero
                 end
             end
 
@@ -11309,7 +10883,11 @@ function Library:CreateWindow(WindowInfo)
         end
 
         function Tab:Hide()
-            if Side == "Footer" then
+            if Side == "Header" or Side == "SidebarBottom" then
+                TweenService:Create(TabButton, Library.TweenInfo, {
+                    ImageTransparency = 0.5,
+                }):Play()
+            elseif Side == "Footer" then
                 if Icon then
                     TweenService:Create(TabButton, Library.TweenInfo, {
                         ImageTransparency = 0.5,
@@ -11320,12 +10898,11 @@ function Library:CreateWindow(WindowInfo)
                     }):Play()
                 end
             else
-                TweenService:Create(TabButton, Library.TweenInfo, {
-                    BackgroundTransparency = 1,
-                }):Play()
-                TweenService:Create(TabLabel, Library.TweenInfo, {
-                    TextTransparency = 0.5,
-                }):Play()
+                if TabStroke then
+                    TweenService:Create(TabStroke, Library.TweenInfo, {
+                        Color = Library.Scheme.OutlineColor,
+                    }):Play()
+                end
                 if TabIcon then
                     TweenService:Create(TabIcon, Library.TweenInfo, {
                         ImageTransparency = 0.5,
@@ -11347,14 +10924,23 @@ function Library:CreateWindow(WindowInfo)
             end
         end
 
-        --// Execution \\--
         TabButton.Visible = TabVisible
 
         if TabVisible and not Library.ActiveTab then
             Tab:Show()
         end
 
-        if Side == "Footer" then
+        if Side == "Header" or Side == "SidebarBottom" then
+            TabButton.MouseEnter:Connect(function()
+                TweenService:Create(TabButton, Library.TweenInfo, { ImageTransparency = 0.25 }):Play()
+            end)
+            TabButton.MouseLeave:Connect(function()
+                if Library.ActiveTab ~= Tab then
+                    TweenService:Create(TabButton, Library.TweenInfo, { ImageTransparency = 0.5 }):Play()
+                end
+            end)
+            TabButton.MouseButton1Click:Connect(Tab.Show)
+        elseif Side == "Footer" then
             local LastClick = 0
             TabButton.MouseEnter:Connect(function()
                 TweenService:Create(TabButton, Library.TweenInfo, {
@@ -11378,10 +10964,28 @@ function Library:CreateWindow(WindowInfo)
             TabButton.MouseButton1Click:Connect(Tab.Show)
         else
             TabButton.MouseEnter:Connect(function()
-                Tab:Hover(true)
+                if Library.ActiveTab ~= Tab then
+                    TweenService:Create(TabButton, Library.TweenInfo, {
+                        BackgroundColor3 = Library:GetBetterColor(Library.Scheme.MainColor, 1),
+                    }):Play()
+                    if TabIcon then
+                        TweenService:Create(TabIcon, Library.TweenInfo, {
+                            ImageTransparency = 0.25,
+                        }):Play()
+                    end
+                end
             end)
             TabButton.MouseLeave:Connect(function()
-                Tab:Hover(false)
+                if Library.ActiveTab ~= Tab then
+                    TweenService:Create(TabButton, Library.TweenInfo, {
+                        BackgroundColor3 = Library.Scheme.MainColor,
+                    }):Play()
+                    if TabIcon then
+                        TweenService:Create(TabIcon, Library.TweenInfo, {
+                            ImageTransparency = 0.5,
+                        }):Play()
+                    end
+                end
             end)
             TabButton.MouseButton1Click:Connect(Tab.Show)
         end
@@ -11391,6 +10995,7 @@ function Library:CreateWindow(WindowInfo)
         Tab.Side = Side
         Tab.TabVisible = TabVisible
         Tab.Button = TabButton
+        Tab.Stroke = TabStroke
         Tab.ShowOnFloating = ShowOnFloating
 
         table.insert(Window.TabsList, Tab)
@@ -11400,285 +11005,6 @@ function Library:CreateWindow(WindowInfo)
         return Tab
     end
 
-    function Window:AddKeyTab(...)
-        local Name = nil
-        local Icon = nil
-        local Description = nil
-
-        if select("#", ...) == 1 and typeof(...) == "table" then
-            local Info = select(1, ...)
-            Name = Info.Name or "Tab"
-            Icon = Info.Icon
-            Description = Info.Description
-        else
-            Name = select(1, ...) or "Tab"
-            Icon = select(2, ...)
-            Description = select(3, ...)
-        end
-
-        Icon = Icon or "key"
-
-        local TabButton: TextButton
-        local TabLabel
-        local TabIcon
-
-        local TabContainer
-
-        Icon = if Icon == "key" then KeyIcon else Library:GetCustomIcon(Icon)
-        do
-            TabButton = New("TextButton", {
-                BackgroundColor3 = "MainColor",
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 40),
-                Text = "",
-                Parent = Tabs,
-            })
-            local ButtonPadding = New("UIPadding", {
-                PaddingBottom = UDim.new(0, IsCompact and 6 or 11),
-                PaddingLeft = UDim.new(0, IsCompact and 6 or 12),
-                PaddingRight = UDim.new(0, IsCompact and 6 or 12),
-                PaddingTop = UDim.new(0, IsCompact and 6 or 11),
-                Parent = TabButton,
-            })
-
-            local LabelContainer = New("Frame", {
-                BackgroundTransparency = 1,
-                ClipsDescendants = true,
-                Position = UDim2.fromOffset(30, 0),
-                Size = UDim2.new(1, -30, 1, 0),
-                Visible = not IsCompact,
-                Parent = TabButton,
-            })
-
-            TabLabel = New("TextLabel", {
-                BackgroundTransparency = 1,
-                Size = UDim2.fromScale(1, 1),
-                Text = Name,
-                TextSize = 16,
-                TextTransparency = 0.5,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = LabelContainer,
-            })
-
-            if Icon then
-                TabIcon = New("ImageLabel", {
-                    AnchorPoint = IsCompact and Vector2.new(0.5, 0.5) or Vector2.new(0, 0),
-                    Position = IsCompact and UDim2.fromScale(0.5, 0.5) or UDim2.new(0, 0, 0, 0),
-                    Image = Icon.Url,
-                    ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
-                    ImageRectOffset = Icon.ImageRectOffset,
-                    ImageRectSize = Icon.ImageRectSize,
-                    ImageTransparency = 0.5,
-                    ScaleType = Enum.ScaleType.Fit,
-                    Size = IsCompact and UDim2.fromOffset(20, 20) or UDim2.fromScale(1, 1),
-                    SizeConstraint = IsCompact and Enum.SizeConstraint.RelativeXY or Enum.SizeConstraint.RelativeYY,
-                    Parent = TabButton,
-                })
-            end
-
-            Library:SetUpMarquee(TabLabel, TabButton, LabelContainer)
-
-            table.insert(Library.TabButtons, {
-                Label = LabelContainer,
-                Padding = ButtonPadding,
-                Icon = TabIcon,
-            })
-
-            --// Tab Container \\--
-            TabContainer = New("ScrollingFrame", {
-                AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                BackgroundTransparency = 1,
-                CanvasSize = UDim2.fromScale(0, 0),
-                ScrollBarThickness = 0,
-                Size = UDim2.fromScale(1, 1),
-                Visible = false,
-                Parent = Container,
-            })
-            New("UIListLayout", {
-                HorizontalAlignment = Enum.HorizontalAlignment.Center,
-                Padding = UDim.new(0, 8),
-                VerticalAlignment = Enum.VerticalAlignment.Center,
-                Parent = TabContainer,
-            })
-            New("UIPadding", {
-                PaddingLeft = UDim.new(0, 1),
-                PaddingRight = UDim.new(0, 1),
-                Parent = TabContainer,
-            })
-        end
-
-        --// Tab Table \\--
-        local Tab = {
-            Elements = {},
-            Description = Description,
-            IsKeyTab = true,
-        }
-
-        function Tab:AddKeyBox(Callback)
-            assert(typeof(Callback) == "function", "Callback must be a function")
-
-            local Holder = New("Frame", {
-                BackgroundTransparency = 1,
-                Size = UDim2.new(0.75, 0, 0, 21),
-                Parent = TabContainer,
-            })
-
-            local Box = New("TextBox", {
-                BackgroundColor3 = "MainColor",
-                PlaceholderText = "Key",
-                Size = UDim2.new(1, -71, 1, 0),
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                Parent = Holder,
-            })
-            New("UIPadding", {
-                PaddingLeft = UDim.new(0, 8),
-                PaddingRight = UDim.new(0, 8),
-                Parent = Box,
-            })
-            New("UIStroke", {
-                Color = "OutlineColor",
-                Parent = Box,
-            })
-            table.insert(
-                Library.Corners,
-                New("UICorner", {
-                    CornerRadius = UDim.new(0, Library.CornerRadius / 2),
-                    Parent = Box,
-                })
-            )
-
-            local Button = New("TextButton", {
-                AnchorPoint = Vector2.new(1, 0),
-                BackgroundColor3 = "MainColor",
-                Position = UDim2.fromScale(1, 0),
-                Size = UDim2.new(0, 63, 1, 0),
-                Text = "Execute",
-                TextSize = 14,
-                Parent = Holder,
-            })
-            New("UIStroke", {
-                Color = "OutlineColor",
-                Parent = Button,
-            })
-            table.insert(
-                Library.Corners,
-                New("UICorner", {
-                    CornerRadius = UDim.new(0, Library.CornerRadius / 2),
-                    Parent = Button,
-                })
-            )
-
-            Button.InputBegan:Connect(function(Input)
-                if not IsClickInput(Input) then
-                    return
-                end
-
-                if not Library:MouseIsOverFrame(Button, Input.Position) then
-                    return
-                end
-
-                Callback(Box.Text)
-            end)
-        end
-
-        function Tab:RefreshSides() end
-        function Tab:Resize() end
-        function Tab:UpdateCorners() end
-
-        function Tab:Hover(Hovering)
-            if Library.ActiveTab == Tab then
-                return
-            end
-
-            TweenService:Create(TabLabel, Library.TweenInfo, {
-                TextTransparency = Hovering and 0.25 or 0.5,
-            }):Play()
-            if TabIcon then
-                TweenService:Create(TabIcon, Library.TweenInfo, {
-                    ImageTransparency = Hovering and 0.25 or 0.5,
-                }):Play()
-            end
-        end
-
-        function Tab:Show()
-            if Library.ActiveTab then
-                Library.ActiveTab:Hide()
-            end
-
-            TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 0,
-            }):Play()
-            TweenService:Create(TabLabel, Library.TweenInfo, {
-                TextTransparency = 0,
-            }):Play()
-            if TabIcon then
-                TweenService:Create(TabIcon, Library.TweenInfo, {
-                    ImageTransparency = 0,
-                }):Play()
-            end
-            TabContainer.Visible = true
-
-            if Description then
-                Window:ShowTabInfo(Name, Description)
-            end
-
-            Tab:RefreshSides()
-
-            Library.ActiveTab = Tab
-
-            if Library.Searching then
-                Library:UpdateSearch(Library.SearchText)
-            end
-        end
-
-        function Tab:Hide()
-            TweenService:Create(TabButton, Library.TweenInfo, {
-                BackgroundTransparency = 1,
-            }):Play()
-            TweenService:Create(TabLabel, Library.TweenInfo, {
-                TextTransparency = 0.5,
-            }):Play()
-            if TabIcon then
-                TweenService:Create(TabIcon, Library.TweenInfo, {
-                    ImageTransparency = 0.5,
-                }):Play()
-            end
-            TabContainer.Visible = false
-
-            Window:HideTabInfo()
-
-            Library.ActiveTab = nil
-        end
-
-        function Tab:SetVisible(Visible: boolean)
-            TabButton.Visible = Visible
-
-            if not Visible and Library.ActiveTab == Tab then
-                Tab:Hide()
-            end
-        end
-
-        --// Execution \\--
-        if not Library.ActiveTab then
-            Tab:Show()
-        end
-
-        TabButton.MouseEnter:Connect(function()
-            Tab:Hover(true)
-        end)
-        TabButton.MouseLeave:Connect(function()
-            Tab:Hover(false)
-        end)
-        TabButton.MouseButton1Click:Connect(Tab.Show)
-
-        Tab.Container = TabContainer
-        setmetatable(Tab, BaseGroupbox)
-
-        Library.Tabs[Name] = Tab
-
-        return Tab
-    end
 
     function Window:AddDialog(Idx, Info)
         Info = Library:Validate(Info, Templates.Dialog)
@@ -12148,16 +11474,6 @@ function Library:CreateWindow(WindowInfo)
     end
 
     function Window:Toggle(Value: boolean?)
-        if Library.ActiveLoading then
-            if Value == true then
-                return
-            end
-
-            if not Library.Toggled then
-                return
-            end
-        end
-
         if typeof(Value) == "boolean" then
             Library.Toggled = Value
         else
@@ -12188,96 +11504,7 @@ function Library:CreateWindow(WindowInfo)
         return Window:Toggle(Value)
     end
 
-    if WindowInfo.EnableSidebarResize then
-        local Threshold = (WindowInfo.MinSidebarWidth + WindowInfo.SidebarCompactWidth) * WindowInfo.SidebarCollapseThreshold
-        local StartPos, StartWidth
-        local Dragging = false
-        local Changed
 
-        local SidebarGrabber = New("TextButton", {
-            AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundTransparency = 1,
-            Position = UDim2.fromScale(0.5, 0),
-            Size = UDim2.new(0, 8, 1, 0),
-            Text = "",
-            Parent = DividerLine,
-        })
-        SidebarGrabber.MouseEnter:Connect(function()
-            TweenService:Create(DividerLine, Library.TweenInfo, {
-                BackgroundColor3 = Library:GetLighterColor(Library.Scheme.OutlineColor),
-            }):Play()
-        end)
-        SidebarGrabber.MouseLeave:Connect(function()
-            if Dragging then
-                return
-            end
-            TweenService:Create(DividerLine, Library.TweenInfo, {
-                BackgroundColor3 = Library.Scheme.OutlineColor,
-            }):Play()
-        end)
-
-        SidebarGrabber.InputBegan:Connect(function(Input: InputObject)
-            if not IsClickInput(Input) then
-                return
-            end
-
-            Library.CantDragForced = true
-
-            StartPos = Input.Position
-            StartWidth = Window:GetSidebarWidth()
-            Dragging = true
-
-            Changed = Input.Changed:Connect(function()
-                if Input.UserInputState ~= Enum.UserInputState.End then
-                    return
-                end
-
-                Library.CantDragForced = false
-                TweenService:Create(DividerLine, Library.TweenInfo, {
-                    BackgroundColor3 = Library.Scheme.OutlineColor,
-                }):Play()
-
-                Dragging = false
-                if Changed and Changed.Connected then
-                    Changed:Disconnect()
-                    Changed = nil
-                end
-            end)
-        end)
-
-        Library:GiveSignal(UserInputService.InputChanged:Connect(function(Input: InputObject)
-            if not Library.Toggled or not (ScreenGui and ScreenGui.Parent) then
-                Dragging = false
-                if Changed and Changed.Connected then
-                    Changed:Disconnect()
-                    Changed = nil
-                end
-
-                return
-            end
-
-            if Dragging and IsHoverInput(Input) then
-                local Delta = Input.Position - StartPos
-                local Width = StartWidth + Delta.X
-
-                if WindowInfo.DisableCompactingSnap then
-                    Window:SetSidebarWidth(Width)
-                    return
-                end
-
-                if Width > Threshold then
-                    Window:SetSidebarWidth(math.max(Width, WindowInfo.MinSidebarWidth))
-                else
-                    Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
-                end
-            end
-        end))
-    end
-    if WindowInfo.SideBarText == false or (WindowInfo.EnableCompacting and WindowInfo.SidebarCompacted) then
-        Window:SetSidebarWidth(WindowInfo.SidebarCompactWidth)
-    else
-        Window:SetSidebarWidth(InitialLeftWidth)
-    end
     local function DoesContainerMatch(Container, SearchQuery)
         local q = SearchQuery:lower()
         if Container.Name and Container.Name:lower():find(q, 1, true) then
@@ -12565,7 +11792,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundTransparency = 1,
             ClipsDescendants = false,
             Size = UDim2.fromOffset(48, 48),
-            Visible = not Library.ActiveLoading,
+            Visible = true,
             ZIndex = 100,
             Parent = ScreenGui,
         })
@@ -12690,22 +11917,16 @@ function Library:CreateWindow(WindowInfo)
         
         UpdateFABIconFlip = function(IsLeftHalf)
             if not FABIcon then return end
-            local dim = WindowInfo.PopCatDimensions
-            if IsLeftHalf then
-                FABIcon.ImageRectOffset = Vector2.new(dim.X, 0)
-                FABIcon.ImageRectSize = Vector2.new(-dim.X, dim.Y)
-            else
-                FABIcon.ImageRectOffset = Vector2.new(0, 0)
-                FABIcon.ImageRectSize = Vector2.new(dim.X, dim.Y)
-            end
+            FABIcon.ImageRectOffset = Vector2.zero
+            FABIcon.ImageRectSize = Vector2.zero
         end
 
         FABIcon = New("ImageLabel", {
             BackgroundTransparency = 1,
-            Size = UDim2.fromOffset(34, 34),
+            Size = UDim2.fromOffset(28, 28),
             Position = UDim2.fromScale(0.5, 0.5),
             AnchorPoint = Vector2.new(0.5, 0.5),
-            Image = CustomImageManager.GetAsset("PopCatSmirkClosed"),
+            Image = CustomImageManager.GetAsset("BobcatLogo"),
             ImageColor3 = Color3.fromRGB(255, 255, 255),
             ZIndex = 103,
             Parent = FABButton,
@@ -12728,7 +11949,7 @@ function Library:CreateWindow(WindowInfo)
             if MenuExpanded then return end
             if SearchContainer and SearchContainer.Visible then return end
             isFaded = true
-            FABIcon.Image = CustomImageManager.GetAsset("PopCatIdleClosed")
+            FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
             TweenService:Create(FABButton, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 BackgroundTransparency = 0.75
             }):Play()
@@ -12747,7 +11968,7 @@ function Library:CreateWindow(WindowInfo)
         local function FadeIn()
             if not isFaded then return end
             isFaded = false
-            FABIcon.Image = CustomImageManager.GetAsset(isHoveringMenu and "PopCatOpen" or "PopCatSmirkClosed")
+            FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
             TweenService:Create(FABButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 BackgroundTransparency = 0.35
             }):Play()
@@ -12778,24 +11999,24 @@ function Library:CreateWindow(WindowInfo)
         
         FABButton.MouseEnter:Connect(function()
             isHoveringMenu = true
-            FABIcon.Image = CustomImageManager.GetAsset("PopCatOpen")
+            FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
             ResetFadeTimer()
             TweenService:Create(FABButton, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                 Size = UDim2.fromOffset(54, 54)
             }):Play()
             TweenService:Create(FABIcon, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.fromOffset(40, 40)
+                Size = UDim2.fromOffset(32, 32)
             }):Play()
         end)
         
         FABButton.MouseLeave:Connect(function()
             isHoveringMenu = false
-            FABIcon.Image = CustomImageManager.GetAsset("PopCatSmirkClosed")
+            FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
             TweenService:Create(FABButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Size = UDim2.fromOffset(48, 48)
             }):Play()
             TweenService:Create(FABIcon, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = UDim2.fromOffset(34, 34)
+                Size = UDim2.fromOffset(28, 28)
             }):Play()
         end)
         
@@ -12904,41 +12125,39 @@ function Library:CreateWindow(WindowInfo)
                 end
             end
 
-            if not (Library.ActiveTab and Library.ActiveTab.IsKeyTab) then
-                table.insert(Actions, {
-                    Name = "Search UI",
-                    Icon = "search",
-                    Func = function()
-                        local ViewportSize = workspace.CurrentCamera.ViewportSize
-                        local IsLeftHalf = FABContainer.AbsolutePosition.X < ViewportSize.X / 2
-                        if IsLeftHalf then
-                            SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X + 60, 0, FABContainer.AbsolutePosition.Y + 6)
-                        else
-                            SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X - 192, 0, FABContainer.AbsolutePosition.Y + 6)
-                        end
-                        SearchContainer.Visible = not SearchContainer.Visible
-                        if SearchContainer.Visible then
-                            justOpenedSearch = true
-                            task.defer(function()
-                                justOpenedSearch = false
-                            end)
-                            Library:Toggle(true)
-                            task.defer(function()
-                                SearchInput:CaptureFocus()
-                            end)
-                            if SearchInput.Text ~= "" and RunSearch then
-                                RunSearch(SearchInput.Text)
-                            end
-                        else
-                            if SearchInput.Text ~= "" then
-                                SearchInput.Text = ""
-                            end
-                            ResetFadeTimer()
-                        end
-                        UpdateMenu(false)
+            table.insert(Actions, {
+                Name = "Search UI",
+                Icon = "search",
+                Func = function()
+                    local ViewportSize = workspace.CurrentCamera.ViewportSize
+                    local IsLeftHalf = FABContainer.AbsolutePosition.X < ViewportSize.X / 2
+                    if IsLeftHalf then
+                        SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X + 60, 0, FABContainer.AbsolutePosition.Y + 6)
+                    else
+                        SearchContainer.Position = UDim2.new(0, FABContainer.AbsolutePosition.X - 192, 0, FABContainer.AbsolutePosition.Y + 6)
                     end
-                })
-            end
+                    SearchContainer.Visible = not SearchContainer.Visible
+                    if SearchContainer.Visible then
+                        justOpenedSearch = true
+                        task.defer(function()
+                            justOpenedSearch = false
+                        end)
+                        Library:Toggle(true)
+                        task.defer(function()
+                            SearchInput:CaptureFocus()
+                        end)
+                        if SearchInput.Text ~= "" and RunSearch then
+                            RunSearch(SearchInput.Text)
+                        end
+                    else
+                        if SearchInput.Text ~= "" then
+                            SearchInput.Text = ""
+                        end
+                        ResetFadeTimer()
+                    end
+                    UpdateMenu(false)
+                end
+            })
 
             if InfoTabObject then
                 table.insert(Actions, {
@@ -13116,7 +12335,7 @@ function Library:CreateWindow(WindowInfo)
             local currentSize = FABButton.Size
             local currentIconSize = FABIcon.Size
             
-            FABIcon.Image = CustomImageManager.GetAsset("PopCatOpen")
+            FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
             
             TweenService:Create(FABButton, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Size = UDim2.fromOffset(currentSize.X.Offset * 0.75, currentSize.Y.Offset * 1.15)
@@ -13128,7 +12347,7 @@ function Library:CreateWindow(WindowInfo)
             
             task.delay(0.08, function()
                 local restoreSize = isHoveringMenu and UDim2.fromOffset(54, 54) or UDim2.fromOffset(48, 48)
-                local restoreIconSize = isHoveringMenu and UDim2.fromOffset(40, 40) or UDim2.fromOffset(34, 34)
+                local restoreIconSize = isHoveringMenu and UDim2.fromOffset(32, 32) or UDim2.fromOffset(28, 28)
                 
                 TweenService:Create(FABButton, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                     Size = restoreSize
@@ -13140,7 +12359,7 @@ function Library:CreateWindow(WindowInfo)
                 
                 task.delay(0.12, function()
                     if not isHoveringMenu then
-                        FABIcon.Image = CustomImageManager.GetAsset("PopCatSmirkClosed")
+                        FABIcon.Image = CustomImageManager.GetAsset("BobcatLogo")
                     end
                 end)
             end)
@@ -13236,620 +12455,178 @@ function Library:CreateWindow(WindowInfo)
 
     SearchResultsTab = Window:AddTab({ Name = "Search Results", Icon = "search", Side = "Sidebar", Visible = false, ShowOnFloating = false })
     SearchResultsTab.IsSearchResultsTab = true
+    if IsTopTabs and SearchResultsTab.Button then
+        SearchResultsTab.Button.Visible = false
+        SearchResultsTab.Button.Size = UDim2.new(0, 0, 0, 0)
+    end
+
+    if WindowInfo.FloatingButton or WindowInfo.ShowFloatingButton then
+        local fabBtn = Instance.new("ImageButton")
+        fabBtn.Name = "FloatingSquircle"
+        fabBtn.Size = UDim2.fromOffset(42, 42)
+        fabBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+        fabBtn.Position = UDim2.new(0, 37, 0.5, 0)
+        fabBtn.BackgroundColor3 = Library.Scheme.MainColor
+        fabBtn.BackgroundTransparency = 0.75
+        local defaultFabIcon = CustomImageManager.GetAsset("BobcatLogo") or ""
+        fabBtn.Image = WindowInfo.FloatingIcon or defaultFabIcon
+        fabBtn.ImageTransparency = 0.65
+        fabBtn.AutoButtonColor = false
+        fabBtn.Active = true
+        fabBtn.ZIndex = 200
+        fabBtn.Parent = ScreenGui
+
+        local fabPad = Instance.new("UIPadding", fabBtn)
+        fabPad.PaddingTop = UDim.new(0, 9)
+        fabPad.PaddingBottom = UDim.new(0, 9)
+        fabPad.PaddingLeft = UDim.new(0, 9)
+        fabPad.PaddingRight = UDim.new(0, 9)
+
+        local corner = Instance.new("UICorner", fabBtn)
+        corner.CornerRadius = UDim.new(0, 10)
+
+        local fabStroke = Instance.new("UIStroke", fabBtn)
+        fabStroke.Color = Library.Scheme.OutlineColor
+        fabStroke.Thickness = 1.5
+        fabStroke.Transparency = 0.6
+        fabStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local Dragging = false
+        local StartInputPos = Vector2.zero
+        local StartBtnPos = fabBtn.Position
+        local Dragged = false
+        local isLeftEdge = true
+        local isPressed = false
+        local isHovered = false
+
+        local function updateFAB(animate)
+            local targetImgTrans = isHovered and 0 or (MainFrame.Visible and 0.65 or 0.35)
+            local targetBgTrans = isHovered and 0.15 or (MainFrame.Visible and 0.75 or 0.5)
+            local targetBgColor = isHovered and Library:GetBetterColor(Library.Scheme.MainColor, 1) or Library.Scheme.MainColor
+            local targetStrokeColor = (isHovered or not MainFrame.Visible) and Library.Scheme.AccentColor or Library.Scheme.OutlineColor
+            local targetStrokeTrans = isHovered and 0 or (MainFrame.Visible and 0.6 or 0.2)
+            local targetSize = isPressed and UDim2.fromOffset(34, 34) or (isHovered and UDim2.fromOffset(46, 46) or UDim2.fromOffset(42, 42))
+
+            if animate then
+                local ti = TweenInfo.new(isPressed and 0.08 or 0.25, isPressed and Enum.EasingStyle.Quad or Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                TweenService:Create(fabBtn, ti, {
+                    ImageTransparency = targetImgTrans,
+                    BackgroundTransparency = targetBgTrans,
+                    BackgroundColor3 = targetBgColor,
+                    Size = targetSize,
+                }):Play()
+                TweenService:Create(fabStroke, ti, {
+                    Color = targetStrokeColor,
+                    Transparency = targetStrokeTrans,
+                }):Play()
+            else
+                fabBtn.ImageTransparency = targetImgTrans
+                fabBtn.BackgroundTransparency = targetBgTrans
+                fabBtn.BackgroundColor3 = targetBgColor
+                fabBtn.Size = targetSize
+                fabStroke.Color = targetStrokeColor
+                fabStroke.Transparency = targetStrokeTrans
+            end
+        end
+
+        fabBtn.MouseEnter:Connect(function()
+            isHovered = true
+            if not Dragging and not isPressed then
+                updateFAB(true)
+            end
+        end)
+        fabBtn.MouseLeave:Connect(function()
+            isHovered = false
+            if not Dragging and not isPressed then
+                updateFAB(true)
+            end
+        end)
+
+        local lastToggle = 0
+        local function toggleUI()
+            local now = os.clock()
+            if now - lastToggle < 0.25 then return end
+            lastToggle = now
+            Window:Toggle()
+            updateFAB(true)
+        end
+
+        fabBtn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                Dragging = true
+                Dragged = false
+                isPressed = true
+                StartInputPos = Vector2.new(input.Position.X, input.Position.Y)
+                StartBtnPos = fabBtn.Position
+
+                TweenService:Create(fabBtn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.fromOffset(34, 34),
+                }):Play()
+
+                local endConn
+                endConn = input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        Dragging = false
+                        isPressed = false
+                        if endConn then
+                            endConn:Disconnect()
+                            endConn = nil
+                        end
+
+                        local restoreSize = isHovered and UDim2.fromOffset(46, 46) or UDim2.fromOffset(42, 42)
+                        TweenService:Create(fabBtn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                            Size = restoreSize,
+                        }):Play()
+
+                        if Dragged then
+                            local camera = workspace.CurrentCamera
+                            local vpSize = camera and camera.ViewportSize or Vector2.new(1000, 800)
+                            local absPos = fabBtn.AbsolutePosition
+                            local centerX = absPos.X + fabBtn.AbsoluteSize.X / 2
+
+                            isLeftEdge = centerX < (vpSize.X / 2)
+                            local clampedY = math.clamp(absPos.Y + fabBtn.AbsoluteSize.Y / 2, 28, vpSize.Y - 28)
+
+                            local targetPos = isLeftEdge
+                                and UDim2.new(0, 37, 0, clampedY)
+                                or UDim2.new(1, -37, 0, clampedY)
+
+                            TweenService:Create(fabBtn, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                                Position = targetPos,
+                            }):Play()
+                        else
+                            toggleUI()
+                        end
+                    end
+                end)
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local currentPos = Vector2.new(input.Position.X, input.Position.Y)
+                local delta = currentPos - StartInputPos
+                if delta.Magnitude > 5 then
+                    Dragged = true
+                end
+                if Dragged then
+                    fabBtn.Position = UDim2.new(
+                        StartBtnPos.X.Scale, StartBtnPos.X.Offset + delta.X,
+                        StartBtnPos.Y.Scale, StartBtnPos.Y.Offset + delta.Y
+                    )
+                end
+            end
+        end)
+
+        MainFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+            updateFAB(true)
+        end)
+
+        updateFAB(false)
+        Window.FloatingButton = fabBtn
+    end
 
     return Window
-end
-
-function Library:CreateLoading(LoadingInfo)
-    if Library.ActiveLoading then
-        warn("Loading GUI already exists, you cannot create multiple Loading GUIs.")
-        return Library.ActiveLoading
-    end
-
-    local PopCatLoaderIcon
-    local PopCatDonutImage
-    local LoaderStroke
-    local Gradient
-    local MainCorner
-
-    LoadingInfo = Library:Validate(LoadingInfo, Templates.Loading)
-    LoadingInfo.PopCat = true
-
-    local Loading = {
-        CurrentStep = LoadingInfo.CurrentStep,
-        TotalSteps = LoadingInfo.TotalSteps,
-
-        ShowSidebar = LoadingInfo.ShowSidebar,
-        AutoResizeHeight = LoadingInfo.AutoResizeHeight,
-        IsError = false,
-        Destroyed = false,
-        EatingDonut = false,
-        StoppedSpinning = false,
-
-        WindowWidth = LoadingInfo.WindowWidth,
-        WindowHeight = LoadingInfo.WindowHeight,
-        BaseWindowHeight = LoadingInfo.WindowHeight,
-        WindowErrorHeight = LoadingInfo.WindowHeight,
-
-        ContentWidth = LoadingInfo.ContentWidth,
-        SidebarWidth = LoadingInfo.SidebarWidth,
-    }
-
-    Loading.WindowWidth = 300
-    Loading.WindowHeight = 100
-    Loading.ContentWidth = 300
-    Loading.ShowSidebar = false
-
-    --// ScreenGui \\--
-    local ScreenGui = New("ScreenGui", {
-        Name = "ObsidianLoading",
-        DisplayOrder = 999,
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-    })
-    ParentUI(ScreenGui)
-    Loading.ScreenGui = ScreenGui
-
-    ScreenGui.DescendantRemoving:Connect(function(Instance)
-        Library:RemoveFromRegistry(Instance)
-    end)
-
-    --// Main Frame \\--
-    local MainFrame = New("TextButton", {
-        Name = "Main",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = function()
-            return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
-        end,
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(64, 64),
-        ClipsDescendants = true,
-        Text = "",
-        AutoButtonColor = false,
-        Parent = ScreenGui,
-    })
-
-    LoaderStroke = New("UIStroke", {
-        Color = "AccentColor",
-        Thickness = 2.5,
-        Parent = MainFrame,
-    })
-    Gradient = New("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library.Scheme.AccentColor),
-            ColorSequenceKeypoint.new(0.5, Library.Scheme.BackgroundColor),
-            ColorSequenceKeypoint.new(1, Library.Scheme.AccentColor),
-        }),
-        Parent = LoaderStroke,
-    })
-    task.spawn(function()
-        local rot = 0
-        while not Loading.Destroyed do
-            if not Loading.StoppedSpinning then
-                rot = (rot + 4) % 360
-                Gradient.Rotation = rot
-            end
-            task.wait()
-        end
-    end)
-
-    MainCorner = New("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = MainFrame })
-    table.insert(Library.Corners, MainCorner)
-    
-	local MainScale = New("UIScale", {
-		Scale = Library.IsMobile and 0.8 or 1,
-		Parent = MainFrame
-	})
-	table.insert(Library.Scales, MainScale)
-	Library.ScalesOffset[MainScale] = Library.IsMobile and 0.2 or 0
-
-    --// Layout Containers \\--
-    local Container = New("Frame", {
-        Name = "Content",
-        BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(0, 0),
-        Size = UDim2.new(0, Loading.ContentWidth, 1, 0),
-        Parent = MainFrame,
-    })
-
-    Container.Visible = false
-    local isLeft = true
-    if LoadingInfo.MobileButtonsSide then
-        isLeft = LoadingInfo.MobileButtonsSide:lower() == "left"
-    end
-    local dim = Vector2.new(418, 418)
-    PopCatLoaderIcon = New("ImageLabel", {
-        Name = "PopCatLoaderIcon",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromScale(0.75, 0.75),
-        Image = CustomImageManager.GetAsset("PopCatIdleClosed"),
-        ImageRectOffset = (not isLeft) and Vector2.new(dim.X, 0) or Vector2.zero,
-        ImageRectSize = (not isLeft) and Vector2.new(-dim.X, dim.Y) or Vector2.zero,
-        ZIndex = 3,
-        Parent = MainFrame,
-    })
-    PopCatDonutImage = New("ImageLabel", {
-        Name = "PopCatDonutImage",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 50, 0.5, 0),
-        Size = UDim2.fromOffset(0, 0),
-        Image = CustomImageManager.GetAsset("PopCatDonut"),
-        ZIndex = 4,
-        Visible = false,
-        Parent = MainFrame,
-    })
-    task.spawn(function()
-        local isOpen = false
-        while not Loading.Destroyed do
-            if not Loading.EatingDonut then
-                isOpen = not isOpen
-                PopCatLoaderIcon.Image = CustomImageManager.GetAsset(isOpen and "PopCatOpen" or "PopCatIdleClosed")
-            end
-            task.wait(0.15)
-        end
-    end)
-    Loading.PopCatLoaderIcon = PopCatLoaderIcon
-
-    --// Top Bar \\--
-    local TopBar = New("Frame", {
-        Name = "TopBar",
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 38),
-        ZIndex = 2,
-        Parent = Container,
-    })
-    Library:MakeDraggable(MainFrame, TopBar, true, true)
-
-    local TitleHolder = New("Frame", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Parent = TopBar,
-    })
-
-    local _WindowTitle = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = LoadingInfo.Title,
-        TextSize = 20,
-        TextXAlignment = Enum.TextXAlignment.Center,
-        Parent = TitleHolder,
-    })
-
-    local TitleLine = Library:MakeLine(Container, {
-        Position = UDim2.fromOffset(0, 48),
-        Size = UDim2.new(1, 0, 0, 1),
-    })
-    TitleLine.Visible = false
-
-    --// Error Frame \\--
-    local ErrorFrame = New("Frame", {
-        Name = "Error",
-        BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(0, 49),
-        Size = UDim2.new(1, 0, 1, -49),
-        ClipsDescendants = true,
-        Visible = false,
-        Parent = Container,
-    })
-
-    local _ErrorTitle = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(15, 15),
-        Size = UDim2.new(1, -30, 0, 18),
-        Text = "Error",
-        TextColor3 = "RedColor",
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = ErrorFrame,
-    })
-
-    local ErrorLabel = New("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(15, 39),
-        Size = UDim2.new(1, -30, 1, -90),
-        Text = "Error Message",
-        TextSize = 14,
-        TextTransparency = 0.2,
-        TextWrapped = true,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        Parent = ErrorFrame,
-    })
-
-    local ErrorButtonsDivider = New("Frame", {
-        BackgroundColor3 = "OutlineColor",
-        BackgroundTransparency = 0,
-        BorderSizePixel = 0,
-        AnchorPoint = Vector2.new(0.5, 0),
-        Position = UDim2.new(0.5, 0, 1, -48),
-        Size = UDim2.new(1, -30, 0, 1),
-        Visible = false,
-        Parent = ErrorFrame,
-    })
-
-    local ErrorButtonsHolder = New("Frame", {
-        AnchorPoint = Vector2.new(0.5, 1),
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 1, 0),
-        Size = UDim2.new(1, 0, 0, 42),
-        Visible = false,
-        Parent = ErrorFrame,
-    })
-    New("UIListLayout", {
-        Padding = UDim.new(0, 8),
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = ErrorButtonsHolder,
-    })
-    New("UIPadding", {
-        PaddingTop = UDim.new(0, 5),
-        PaddingBottom = UDim.new(0, 15),
-        PaddingRight = UDim.new(0, 15),
-        Parent = ErrorButtonsHolder,
-    })
-
-    function Loading:UpdateLayout()
-        if Loading.IsError then
-            Loading:RecalculateErrorHeight()
-            
-            if PopCatLoaderIcon then PopCatLoaderIcon.Visible = false end
-            if PopCatDonutImage then PopCatDonutImage.Visible = false end
-            Loading.StoppedSpinning = true
-            
-            Container.Visible = true
-            ErrorFrame.Visible = true
-            
-            if MainCorner then
-                MainCorner.CornerRadius = UDim.new(0, Library.CornerRadius)
-            end
-            
-            local FinalWidth = Loading.WindowWidth
-            local FinalHeight = Loading.WindowErrorHeight
-            
-            TweenService:Create(MainFrame, Library.TweenInfo, { Size = UDim2.fromOffset(FinalWidth, FinalHeight) }):Play()
-            TweenService:Create(Container, Library.TweenInfo, { Size = UDim2.new(1, 0, 1, 0) }):Play()
-        else
-            if PopCatLoaderIcon then PopCatLoaderIcon.Visible = true end
-            Loading.StoppedSpinning = false
-            
-            Container.Visible = false
-            ErrorFrame.Visible = false
-            
-            if MainCorner then
-                MainCorner.CornerRadius = UDim.new(0.5, 0)
-            end
-            
-            TweenService:Create(MainFrame, Library.TweenInfo, { Size = UDim2.fromOffset(64, 64) }):Play()
-        end
-    end
-
-    --// Content Page \\--
-    function Loading:RecalculateLoadingHeight()
-    end
-
-    function Loading:SetMessage(Text)
-    end
-
-    function Loading:SetDescription(Text)
-    end
-
-    function Loading:SetLoadingIcon(Icon)
-    end
-
-    function Loading:SetLoadingIconTweenTime(TweenTime)
-    end
-
-    function Loading:SetLoadingIconColor(Color)
-    end
-
-    function Loading:SetCurrentStep(Step)
-        Loading.CurrentStep = math.clamp(Step, 0, Loading.TotalSteps)
-    end
-
-    function Loading:SetTotalSteps(Steps)
-        Loading.TotalSteps = Steps
-        Loading:SetCurrentStep(Loading.CurrentStep)
-    end
-
-    --// Size \\--
-    function Loading:SetWindowHeight(Height)
-        Loading.WindowHeight = Height
-        Loading:UpdateLayout()
-    end
-
-    function Loading:SetWindowWidth(Width)
-        Loading.WindowWidth = Width
-        Loading:UpdateLayout()
-    end
-
-    function Loading:SetContentWidth(Width)
-        Loading.ContentWidth = Width
-        Loading:UpdateLayout()
-    end
-
-    function Loading:SetSidebarWidth(Width)
-        Loading.SidebarWidth = Width
-        Loading:UpdateLayout()
-    end
-
-    --// Sidebar \\--
-    function Loading:ShowSidebarPage(Bool)
-        Loading.ShowSidebar = Bool
-    end
-
-    --// Error Page \\--
-    function Loading:ShowErrorPage(Enabled)
-        Loading.IsError = Enabled
-        ErrorFrame.Visible = Enabled
-
-        Loading:UpdateLayout()
-    end
-
-    function Loading:RecalculateErrorHeight()
-        local TargetWidth = (Loading.ShowSidebar and Loading.ContentWidth or Loading.WindowWidth) - 30
-        local _, ErrorY = Library:GetTextBounds(ErrorLabel.Text, Library.Scheme.Font, 14, TargetWidth)
-
-        ErrorLabel.Size = UDim2.new(1, -30, 0, ErrorY)
-
-        local HasButtons = ErrorButtonsHolder.Visible
-        local RequiredHeight =
-              49                        -- TopBar
-            + 15                        -- Padding Top
-            + 18                        -- Title Height
-            + 6                         -- Padding between Title and Label
-            + ErrorY                    -- Label Height
-            + 15                        -- Padding between Label and Buttons
-            + (HasButtons and 48 or 0)  -- Buttons Area
-
-        Loading.WindowErrorHeight = RequiredHeight 
-    end
-
-    function Loading:SetErrorMessage(Text)
-        ErrorLabel.Text = Text
-        Loading:UpdateLayout()
-    end
-
-    function Loading:SetErrorButtons(Buttons)
-        assert(typeof(Buttons) == "table", "Buttons must be a table")
-
-        for _, button in ErrorButtonsHolder:GetChildren() do
-            if button:IsA("Frame") then 
-                button:Destroy() 
-            end
-        end
-
-        local HasButtons = GetTableSize(Buttons) > 0
-        ErrorButtonsHolder.Visible = HasButtons
-        ErrorButtonsDivider.Visible = HasButtons
-
-        for Idx, ButtonInfo in Buttons do
-            local ButtonContainer = New("Frame", {
-                BackgroundTransparency = 1,
-                Size = UDim2.fromOffset(0, 26),
-                Parent = ErrorButtonsHolder,
-            })
-            
-            local BtnColor = "MainColor"
-            local BtnOutline = "OutlineColor"
-            local Variant = ButtonInfo.Variant or "Primary"
-            
-            if Variant == "Primary" then
-                BtnColor = "FontColor"
-                BtnOutline = "FontColor"
-            elseif Variant == "Secondary" then
-                BtnColor = "MainColor"
-                BtnOutline = "OutlineColor"
-            elseif Variant == "Destructive" then
-                BtnColor = "DestructiveColor"
-                BtnOutline = "DestructiveColor"
-            elseif Variant == "Ghost" then
-                BtnColor = "BackgroundColor"
-                BtnOutline = "BackgroundColor"
-            end
-
-            local TextBtn = New("TextButton", {
-                BackgroundColor3 = BtnColor,
-                BorderColor3 = BtnOutline,
-                Size = UDim2.fromOffset(0, 26),
-                Text = "",
-                AutoButtonColor = false,
-                Parent = ButtonContainer,
-            })
-            Library:AddOutline(TextBtn)
-            table.insert(
-                Library.Corners,
-                New("UICorner", { 
-                    CornerRadius = UDim.new(0, Library.CornerRadius), 
-                    Parent = TextBtn 
-                })
-            )
-
-            New("UIPadding", {
-                PaddingLeft = UDim.new(0, 15),
-                PaddingRight = UDim.new(0, 15),
-                Parent = TextBtn,
-            })
-
-            local TextColor = Library.Scheme.FontColor
-            if Variant == "Primary" then
-                TextColor = Library.Scheme.BackgroundColor
-            elseif Variant == "Destructive" then
-                TextColor = Color3.new(1, 1, 1)
-            end
-
-            local BtnLabel = New("TextLabel", {
-                BackgroundTransparency = 1,
-                Size = UDim2.fromScale(1, 1),
-                Text = ButtonInfo.Title or Idx,
-                TextColor3 = TextColor,
-                TextSize = 14,
-                Parent = TextBtn,
-            })
-            
-            local LabelX, _ = Library:GetTextBounds(BtnLabel.Text, Library.Scheme.Font, 14, 250)
-            ButtonContainer.Size = UDim2.fromOffset(LabelX + 30, 26)
-            TextBtn.Size = UDim2.fromOffset(LabelX + 30, 26)
-
-            local ActiveColor = typeof(BtnColor) == "Color3" and BtnColor or Library.Scheme[BtnColor]
-            local HoverColor = Variant == "Ghost" and Library.Scheme.MainColor or Library:GetBetterColor(ActiveColor, 10)
-
-            TextBtn.MouseEnter:Connect(function()
-                TweenService:Create(TextBtn, Library.TweenInfo, {
-                    BackgroundColor3 = HoverColor
-                }):Play()
-            end)
-            TextBtn.MouseLeave:Connect(function()
-                TweenService:Create(TextBtn, Library.TweenInfo, {
-                    BackgroundColor3 = ActiveColor
-                }):Play()
-            end)
-
-            TextBtn.MouseButton1Click:Connect(function()
-                if ButtonInfo.Callback then
-                    ButtonInfo.Callback(Loading)
-                end
-            end)
-        end
-
-        Loading:UpdateLayout()
-    end
-
-    --// Destroy/Continue \\--
-    function Loading:Destroy()
-        if RotationTween then
-            RotationTween:Cancel()
-        end
-
-        Loading.EatingDonut = true
-
-        local function performBite(size, donutSize, offset)
-            if not PopCatLoaderIcon then return end
-            
-            local origClips = MainFrame.ClipsDescendants
-            MainFrame.ClipsDescendants = false
-
-            PopCatLoaderIcon.Image = CustomImageManager.GetAsset("PopCatOpen")
-
-            local donutCount = 8
-            local activeDonuts = {}
-
-            for i = 1, donutCount do
-                local angle = math.rad(math.random(0, 360))
-                local startRadius = math.random(55, 85)
-                local startX = math.cos(angle) * startRadius
-                local startY = math.sin(angle) * startRadius
-
-                local miniDonut = New("ImageLabel", {
-                    Name = "MiniDonut",
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0.5, startX, 0.5, startY),
-                    Size = UDim2.fromOffset(0, 0),
-                    Image = CustomImageManager.GetAsset("PopCatDonut"),
-                    ZIndex = 4,
-                    Parent = MainFrame,
-                })
-
-                table.insert(activeDonuts, miniDonut)
-
-                task.spawn(function()
-                    task.wait((i - 1) * 0.04)
-                    if Loading.Destroyed or not miniDonut.Parent then return end
-
-                    local duration = math.random(300, 420) / 1000
-
-                    TweenService:Create(miniDonut, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        Size = UDim2.fromOffset(donutSize, donutSize)
-                    }):Play()
-                    task.wait(0.08)
-
-                    TweenService:Create(miniDonut, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                        Position = UDim2.fromScale(0.5, 0.5),
-                        Size = UDim2.fromOffset(0, 0),
-                        Rotation = math.random(180, 540) * (math.random(1, 2) == 1 and 1 or -1)
-                    }):Play()
-
-                    task.wait(duration)
-                    miniDonut:Destroy()
-                end)
-            end
-
-            task.wait(0.8)
-
-            PopCatLoaderIcon.Image = CustomImageManager.GetAsset("PopCatIdleClosed")
-
-            TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {
-                Size = UDim2.fromOffset(size, size)
-            }):Play()
-
-            for j = 1, 8 do
-                local crumb = New("Frame", {
-                    BackgroundColor3 = Color3.fromRGB(120, 68, 33),
-                    BorderSizePixel = 0,
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
-                    Size = UDim2.fromOffset(math.random(2, 4), math.random(2, 4)),
-                    ZIndex = 4,
-                    Parent = MainFrame,
-                })
-                local angle = math.rad(math.random(0, 360))
-                local force = math.random(15, 30)
-                local targetX = math.cos(angle) * force
-                local targetY = math.sin(angle) * force
-                TweenService:Create(crumb, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Position = UDim2.new(0.5, targetX, 0.5, targetY),
-                    Size = UDim2.fromOffset(0, 0),
-                    BackgroundTransparency = 1,
-                }):Play()
-                task.delay(0.4, function()
-                    crumb:Destroy()
-                end)
-            end
-            task.wait(0.25)
-            MainFrame.ClipsDescendants = origClips
-        end
-
-        performBite(76, 24, 50)
-
-        TweenService:Create(MainFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.fromOffset(0, 0)
-        }):Play()
-        task.wait(0.15)
-
-        ScreenGui:Destroy()
-        Loading.Destroyed = true
-        Library.ActiveLoading = nil
-
-        if Library.FABContainer and Library.FABButton then
-            Library.FABContainer.Visible = true
-            Library.FABButton.Visible = true
-            Library.FABButton.Size = UDim2.fromOffset(0, 0)
-            TweenService:Create(Library.FABButton, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.fromOffset(48, 48)
-            }):Play()
-        end
-
-        if Library.MainFrame then
-            Library.MainFrame.Visible = false
-            Library.Toggled = false
-        end
-    end
-
-    Loading.Continue = Loading.Destroy;
-
-    if Library.Toggle and Library.Toggled and Library.Unloaded ~= true then
-        Library:Toggle(false)
-    end
-
-    Loading:SetCurrentStep(Loading.CurrentStep)
-
-    Library.ActiveLoading = Loading
-    return Loading
 end
 
 local function OnPlayerChange()
