@@ -1149,6 +1149,10 @@ function Library:GetIcon(IconName: string)
     if typeof(Icon.ImageRectOffset) ~= "Vector2" or typeof(Icon.ImageRectSize) ~= "Vector2" then
         return
     end
+
+    if IconName == "user" and type(Icon.Url) == "string" and string.find(Icon.Url, "70895076374895", 1, true) then
+        Icon.ImageRectOffset = Vector2.new(200, 50)
+    end
     
     return Icon
 end
